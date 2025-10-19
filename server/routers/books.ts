@@ -7,7 +7,10 @@ import {
   updateBookLastModified,
   deleteBook,
   getGitCredential,
+  getDb,
 } from '../db';
+import { books } from '../../drizzle/schema';
+import { eq } from 'drizzle-orm';
 import { TRPCError } from '@trpc/server';
 
 /**
@@ -99,6 +102,47 @@ export const booksRouter = router({
       }
 
       await updateBookLastModified(input.id);
+      return { success: true };
+    }),
+
+  /**
+   * Update book sections and source content
+   */
+  updateSections: protectedProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        sourceContent: z.string(),
+        sections: z.array(z.any()),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const book = await getBook(input.id);
+
+      if (!book || book.userId !== ctx.user.id) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Access denied',
+        });
+      }
+
+      const db = await getDb();
+      if (!db) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Database not available',
+        });
+      }
+
+      await db
+        .update(books)
+        .set({
+          sourceContent: input.sourceContent,
+          sections: JSON.stringify(input.sections),
+          lastModified: new Date(),
+        })
+        .where(eq(books.id, input.id));
+
       return { success: true };
     }),
 
