@@ -33,6 +33,7 @@ export default function BookEditor() {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [translationProgress, setTranslationProgress] = useState<Record<string, string>>({});
   const [isLoadingProgress, setIsLoadingProgress] = useState(true);
+  const [showSectionsList, setShowSectionsList] = useState(false);
 
   const { data: book } = trpc.books.get.useQuery(
     { id: bookId || "" },
@@ -63,6 +64,8 @@ export default function BookEditor() {
           setSourceContent(progress.sourceContent);
           // Auto-split the loaded source content
           handleSplitDocument(progress.sourceContent);
+          // Show sections list if there's progress
+          setShowSectionsList(true);
         }
       }
       setIsLoadingProgress(false);
@@ -297,7 +300,53 @@ export default function BookEditor() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        {sections.length === 0 ? (
+        {showSectionsList && sections.length > 0 ? (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Translation Sections</CardTitle>
+                <CardDescription>
+                  {Object.keys(translationProgress).length} of {sections.length} sections translated
+                  ({Math.round((Object.keys(translationProgress).length / sections.length) * 100)}%)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {sections.map((section, index) => {
+                    const isTranslated = !!translationProgress[section.id];
+                    return (
+                      <button
+                        key={section.id}
+                        onClick={() => {
+                          setCurrentSectionIndex(index);
+                          setShowSectionsList(false);
+                        }}
+                        className="w-full text-left p-4 rounded-lg border hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">Section {index + 1}</span>
+                              {isTranslated ? (
+                                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">Translated</span>
+                              ) : (
+                                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">Not translated</span>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                              {section.content.substring(0, 100)}...
+                            </p>
+                          </div>
+                          <ArrowLeft className="h-4 w-4 rotate-180 text-muted-foreground" />
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        ) : sections.length === 0 ? (
           <Card>
             <CardHeader>
               <CardTitle>Upload Source Document</CardTitle>
@@ -387,6 +436,16 @@ export default function BookEditor() {
           </Card>
         ) : (
           <div className="space-y-6">
+            {/* Back to sections list button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowSectionsList(true)}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Sections List
+            </Button>
+            
             {/* Progress */}
             <Card>
               <CardContent className="pt-6">

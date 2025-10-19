@@ -11,6 +11,22 @@ import { getSessionCookieOptions } from './cookies';
 const router = Router();
 
 /**
+ * Debug endpoint to show OAuth configuration
+ */
+router.get('/oauth/debug', (req, res) => {
+  const clientId = process.env.GITHUB_CLIENT_ID;
+  const baseUrl = process.env.PUBLIC_URL || `${req.protocol}://${req.get('host')}`;
+  const redirectUri = `${baseUrl}/api/oauth/github/callback`;
+  
+  res.json({
+    clientId: clientId ? `${clientId.substring(0, 10)}...` : 'NOT SET',
+    baseUrl,
+    redirectUri,
+    authUrl: `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=repo%20user:email&state=TEST`,
+  });
+});
+
+/**
  * GitHub OAuth flow
  */
 router.get('/oauth/github', (req, res) => {
@@ -20,6 +36,10 @@ router.get('/oauth/github', (req, res) => {
   const scope = 'repo user:email';
   const state = nanoid();
 
+  console.log('[GitHub OAuth] Client ID:', clientId);
+  console.log('[GitHub OAuth] Base URL:', baseUrl);
+  console.log('[GitHub OAuth] Redirect URI:', redirectUri);
+
   // Store state in session for CSRF protection
   req.session = req.session || {};
   req.session.oauthState = state;
@@ -27,6 +47,8 @@ router.get('/oauth/github', (req, res) => {
   const authUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(
     redirectUri
   )}&scope=${encodeURIComponent(scope)}&state=${state}`;
+
+  console.log('[GitHub OAuth] Auth URL:', authUrl);
 
   res.redirect(authUrl);
 });
