@@ -159,7 +159,7 @@ export class GitLabClient {
   /**
    * List all files in a directory
    */
-  async listFiles(projectId: string, path = '', branch = 'main'): Promise<string[]> {
+  async listFiles(projectId: string, path = '', branch = 'main'): Promise<Array<{ name: string; path: string; type: string }>> {
     try {
       const tree = await this.gitlab.Repositories.allRepositoryTrees(projectId, {
         path,
@@ -169,7 +169,11 @@ export class GitLabClient {
 
       return tree
         .filter(item => item.type === 'blob')
-        .map(item => item.path);
+        .map(item => ({
+          name: item.name,
+          path: item.path,
+          type: 'file',
+        }));
     } catch (error: any) {
       if (error.response?.status === 404) {
         return [];

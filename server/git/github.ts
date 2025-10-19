@@ -181,7 +181,7 @@ export class GitHubClient {
   /**
    * List all files in a directory
    */
-  async listFiles(owner: string, repo: string, path = '', branch = 'main'): Promise<string[]> {
+  async listFiles(owner: string, repo: string, path = '', branch = 'main'): Promise<Array<{ name: string; path: string; type: string }>> {
     try {
       const { data } = await this.octokit.repos.getContent({
         owner,
@@ -193,7 +193,11 @@ export class GitHubClient {
       if (Array.isArray(data)) {
         return data
           .filter(item => item.type === 'file')
-          .map(item => item.path);
+          .map(item => ({
+            name: item.name,
+            path: item.path,
+            type: item.type,
+          }));
       }
 
       return [];

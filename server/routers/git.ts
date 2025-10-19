@@ -238,7 +238,7 @@ export const gitRouter = router({
               const content = await client.getFile(
                 input.owner,
                 input.repo,
-                `source/${file.name}`,
+                file.path, // Use full path from listFiles
                 input.branch
               );
               if (content) {
@@ -256,7 +256,7 @@ export const gitRouter = router({
               const content = await client.getFile(
                 input.owner,
                 input.repo,
-                `translated/${file.name}`,
+                file.path, // Use full path from listFiles
                 input.branch
               );
               if (content) {
