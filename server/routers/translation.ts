@@ -1,11 +1,46 @@
 import { z } from 'zod';
 import { protectedProcedure, router } from '../_core/trpc';
 import { splitDocument, generateTranslationDraft, batchGenerateDrafts } from '../translation/service';
+import { extractTextFromPDF, convertPDFTextToMarkdown } from '../translation/pdfExtractor';
 
 /**
  * Translation router
  */
 export const translationRouter = router({
+  /**
+   * Upload and process PDF document
+   */
+  uploadPDF: protectedProcedure
+    .input(
+      z.object({
+        base64Data: z.string(),
+        sourceLanguage: z.string(),
+        targetLanguage: z.string(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      // Decode base64 PDF data
+      const buffer = Buffer.from(input.base64Data, 'base64');
+      
+      // Extract text from PDF
+      const text = await extractTextFromPDF(buffer);
+      
+      // Convert to Markdown
+      const markdown = convertPDFTextToMarkdown(text);
+      
+      // Split into sections
+      const sections = await splitDocument(
+        markdown,
+        input.sourceLanguage,
+        input.targetLanguage
+      );
+      
+      return {
+        markdown,
+        sections,
+      };
+    }),
+
   /**
    * Split a document into sections for translation
    */
