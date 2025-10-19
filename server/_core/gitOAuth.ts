@@ -15,7 +15,8 @@ const router = Router();
  */
 router.get('/oauth/github', (req, res) => {
   const clientId = process.env.GITHUB_CLIENT_ID;
-  const redirectUri = `${req.protocol}://${req.get('host')}/api/oauth/github/callback`;
+  const baseUrl = process.env.PUBLIC_URL || `${req.protocol}://${req.get('host')}`;
+  const redirectUri = `${baseUrl}/api/oauth/github/callback`;
   const scope = 'repo user:email';
   const state = nanoid();
 
@@ -120,7 +121,8 @@ router.get('/oauth/github/callback', async (req, res) => {
  */
 router.get('/oauth/gitlab', (req, res) => {
   const clientId = process.env.GITLAB_CLIENT_ID;
-  const redirectUri = `${req.protocol}://${req.get('host')}/api/oauth/gitlab/callback`;
+  const baseUrl = process.env.PUBLIC_URL || `${req.protocol}://${req.get('host')}`;
+  const redirectUri = `${baseUrl}/api/oauth/gitlab/callback`;
   const scope = 'api read_user';
   const state = nanoid();
 
@@ -155,7 +157,7 @@ router.get('/oauth/gitlab/callback', async (req, res) => {
         client_secret: process.env.GITLAB_CLIENT_SECRET,
         code,
         grant_type: 'authorization_code',
-        redirect_uri: `${req.protocol}://${req.get('host')}/api/oauth/gitlab/callback`,
+        redirect_uri: `${process.env.PUBLIC_URL || `${req.protocol}://${req.get('host')}`}/api/oauth/gitlab/callback`,
       }),
     });
 
