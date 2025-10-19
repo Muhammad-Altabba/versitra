@@ -16,7 +16,7 @@ import {
   GitBranch,
   Eye,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
 import { toast } from "sonner";
 import MDEditor from '@uiw/react-md-editor';
@@ -31,6 +31,8 @@ export default function BookEditor() {
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [uploadMode, setUploadMode] = useState<'text' | 'pdf'>('text');
   const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [translationProgress, setTranslationProgress] = useState<Record<string, string>>({});
+  const [isLoadingProgress, setIsLoadingProgress] = useState(true);
 
   const { data: book } = trpc.books.get.useQuery(
     { id: bookId || "" },
@@ -40,6 +42,42 @@ export default function BookEditor() {
   const { data: gitInfo } = trpc.git.getUserInfo.useQuery(undefined, {
     enabled: isAuthenticated,
   });
+
+  // Load translation progress from Git
+  const { data: progress } = trpc.git.loadTranslationProgress.useQuery(
+    {
+      owner: gitInfo?.username || '',
+      repo: book?.repoName.split('/').pop() || '',
+    },
+    {
+      enabled: !!book && !!gitInfo && isAuthenticated,
+    }
+  );
+
+  // Process loaded progress
+  useEffect(() => {
+    if (progress) {
+      if (progress.hasProgress) {
+        setTranslationProgress(progress.translations);
+        if (progress.sourceContent && !sourceContent) {
+          setSourceContent(progress.sourceContent);
+        }
+      }
+      setIsLoadingProgress(false);
+    }
+  }, [progress]);
+
+  // Load existing translation when section changes
+  useEffect(() => {
+    if (sections.length > 0 && sections[currentSectionIndex]) {
+      const sectionId = sections[currentSectionIndex].id;
+      if (translationProgress[sectionId]) {
+        setTranslatedContent(translationProgress[sectionId]);
+      } else {
+        setTranslatedContent('');
+      }
+    }
+  }, [currentSectionIndex, sections, translationProgress]);
 
   const splitDocumentMutation = trpc.translation.splitDocument.useMutation();
   const uploadPDFMutation = trpc.translation.uploadPDF.useMutation();
@@ -86,6 +124,12 @@ export default function BookEditor() {
       });
 
       setSections(result);
+      // Load existing translations for sections
+      result.forEach((section) => {
+        if (translationProgress[section.id]) {
+          // Section already translated
+        }
+      });
       setCurrentSectionIndex(0);
       toast.success(`Document split into ${result.length} sections`);
     } catch (error) {
@@ -126,6 +170,12 @@ export default function BookEditor() {
         content: translatedContent,
         message: `translate/${section?.id || "section"}`,
       });
+
+      // Update local progress
+      setTranslationProgress(prev => ({
+        ...prev,
+        [section?.id || 'section']: translatedContent,
+      }));
 
       toast.success("Translation saved to Git");
 
@@ -326,14 +376,14 @@ export default function BookEditor() {
                     Section {currentSectionIndex + 1} of {sections.length}
                   </span>
                   <span className="text-sm text-muted-foreground">
-                    {Math.round(((currentSectionIndex + 1) / sections.length) * 100)}% complete
+                    {Object.keys(translationProgress).length} of {sections.length} translated ({Math.round((Object.keys(translationProgress).length / sections.length) * 100)}%)
                   </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
                     className="bg-primary h-2 rounded-full transition-all"
                     style={{
-                      width: `${((currentSectionIndex + 1) / sections.length) * 100}%`,
+                      width: `${(Object.keys(translationProgress).length / sections.length) * 100}%`,
                     }}
                   />
                 </div>
