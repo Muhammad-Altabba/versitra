@@ -2,6 +2,9 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
+import { gitRouter } from "./routers/git";
+import { booksRouter } from "./routers/books";
+import { translationRouter } from "./routers/translation";
 
 export const appRouter = router({
   system: systemRouter,
@@ -17,12 +20,14 @@ export const appRouter = router({
     }),
   }),
 
-  // TODO: add feature routers here, e.g.
-  // todo: router({
-  //   list: protectedProcedure.query(({ ctx }) =>
-  //     db.getUserTodos(ctx.user.id)
-  //   ),
-  // }),
+  // Git operations
+  git: gitRouter,
+
+  // Books management
+  books: booksRouter,
+
+  // Translation workflow
+  translation: translationRouter,
 });
 
 export type AppRouter = typeof appRouter;
