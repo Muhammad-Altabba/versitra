@@ -19,6 +19,7 @@ import {
 import { useState } from "react";
 import { useLocation, useParams } from "wouter";
 import { toast } from "sonner";
+import MDEditor from '@uiw/react-md-editor';
 
 export default function BookEditor() {
   const { bookId } = useParams<{ bookId: string }>();
@@ -28,6 +29,8 @@ export default function BookEditor() {
   const [translatedContent, setTranslatedContent] = useState("");
   const [sections, setSections] = useState<any[]>([]);
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
+  const [uploadMode, setUploadMode] = useState<'text' | 'pdf'>('text');
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
 
   const { data: book } = trpc.books.get.useQuery(
     { id: bookId || "" },
@@ -39,9 +42,37 @@ export default function BookEditor() {
   });
 
   const splitDocumentMutation = trpc.translation.splitDocument.useMutation();
+  const uploadPDFMutation = trpc.translation.uploadPDF.useMutation();
   const generateDraftMutation = trpc.translation.generateDraft.useMutation();
   const commitFileMutation = trpc.git.commitFile.useMutation();
   const exportPDFMutation = trpc.export.bookToPDF.useMutation();
+
+  const handleProcessPDF = async () => {
+    if (!pdfFile || !book) return;
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const base64Data = e.target?.result as string;
+        const base64 = base64Data.split(',')[1];
+
+        const result = await uploadPDFMutation.mutateAsync({
+          base64Data: base64,
+          sourceLanguage: book.sourceLanguage || "en",
+          targetLanguage: book.targetLanguage || "es",
+        });
+
+        setSourceContent(result.markdown);
+        setSections(result.sections);
+        setCurrentSectionIndex(0);
+        toast.success(`PDF processed! Found ${result.sections.length} sections`);
+      };
+      reader.readAsDataURL(pdfFile);
+    } catch (error) {
+      toast.error("Failed to process PDF");
+      console.error(error);
+    }
+  };
 
   const handleUploadSource = async () => {
     if (!sourceContent || !book) return;
@@ -202,28 +233,87 @@ export default function BookEditor() {
             <CardHeader>
               <CardTitle>Upload Source Document</CardTitle>
               <CardDescription>
-                Paste your source Markdown content to begin translation
+                Choose how to upload your source content
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Textarea
-                placeholder="Paste your Markdown content here..."
-                value={sourceContent}
-                onChange={(e) => setSourceContent(e.target.value)}
-                className="min-h-[400px] font-mono"
-              />
-              <Button
-                onClick={handleUploadSource}
-                disabled={!sourceContent || splitDocumentMutation.isPending}
-                className="w-full"
-              >
-                {splitDocumentMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
+              <div className="flex gap-4">
+                <Button
+                  variant={uploadMode === 'text' ? 'default' : 'outline'}
+                  onClick={() => setUploadMode('text')}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Paste Text
+                </Button>
+                <Button
+                  variant={uploadMode === 'pdf' ? 'default' : 'outline'}
+                  onClick={() => setUploadMode('pdf')}
+                >
                   <Upload className="h-4 w-4 mr-2" />
-                )}
-                Split Document & Start Translation
-              </Button>
+                  Upload PDF
+                </Button>
+              </div>
+
+              {uploadMode === 'text' ? (
+                <>
+                  <div data-color-mode="light">
+                    <MDEditor
+                      value={sourceContent}
+                      onChange={(val) => setSourceContent(val || '')}
+                      height={400}
+                      preview="edit"
+                    />
+                  </div>
+                  <Button
+                    onClick={handleUploadSource}
+                    disabled={!sourceContent || splitDocumentMutation.isPending}
+                    className="w-full"
+                  >
+                    {splitDocumentMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4 mr-2" />
+                    )}
+                    Split Document & Start Translation
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) setPdfFile(file);
+                      }}
+                      className="block w-full text-sm text-muted-foreground
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-md file:border-0
+                        file:text-sm file:font-semibold
+                        file:bg-primary file:text-primary-foreground
+                        hover:file:bg-primary/90"
+                    />
+                    {pdfFile && (
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        Selected: {pdfFile.name}
+                      </p>
+                    )}
+                  </div>
+                  <Button
+                    onClick={handleProcessPDF}
+                    disabled={!pdfFile || uploadPDFMutation.isPending}
+                    className="w-full"
+                  >
+                    {uploadPDFMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4 mr-2" />
+                    )}
+                    Process PDF & Start Translation
+                  </Button>
+                </>
+              )}
             </CardContent>
           </Card>
         ) : (
@@ -303,12 +393,14 @@ export default function BookEditor() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <Textarea
-                    value={translatedContent}
-                    onChange={(e) => setTranslatedContent(e.target.value)}
-                    placeholder="Enter your translation here or generate an AI draft..."
-                    className="min-h-[400px] font-mono"
-                  />
+                  <div data-color-mode="light">
+                    <MDEditor
+                      value={translatedContent}
+                      onChange={(val) => setTranslatedContent(val || '')}
+                      height={400}
+                      preview="edit"
+                    />
+                  </div>
                 </CardContent>
               </Card>
             </div>
