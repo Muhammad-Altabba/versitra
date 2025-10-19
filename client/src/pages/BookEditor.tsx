@@ -61,11 +61,31 @@ export default function BookEditor() {
         setTranslationProgress(progress.translations);
         if (progress.sourceContent && !sourceContent) {
           setSourceContent(progress.sourceContent);
+          // Auto-split the loaded source content
+          handleSplitDocument(progress.sourceContent);
         }
       }
       setIsLoadingProgress(false);
     }
   }, [progress]);
+
+  // Helper function to split document
+  const handleSplitDocument = async (content: string) => {
+    if (!book) return;
+    
+    try {
+      const result = await splitDocumentMutation.mutateAsync({
+        content,
+        sourceLanguage: book.sourceLanguage || "en",
+        targetLanguage: book.targetLanguage || "es",
+      });
+
+      setSections(result);
+      setCurrentSectionIndex(0);
+    } catch (error) {
+      console.error('Failed to split document:', error);
+    }
+  };
 
   // Load existing translation when section changes
   useEffect(() => {
@@ -116,22 +136,8 @@ export default function BookEditor() {
     if (!sourceContent || !book) return;
 
     try {
-      // Split document into sections
-      const result = await splitDocumentMutation.mutateAsync({
-        content: sourceContent,
-        sourceLanguage: book.sourceLanguage || "en",
-        targetLanguage: book.targetLanguage || "es",
-      });
-
-      setSections(result);
-      // Load existing translations for sections
-      result.forEach((section) => {
-        if (translationProgress[section.id]) {
-          // Section already translated
-        }
-      });
-      setCurrentSectionIndex(0);
-      toast.success(`Document split into ${result.length} sections`);
+      await handleSplitDocument(sourceContent);
+      toast.success(`Document split into sections`);
     } catch (error) {
       toast.error("Failed to split document");
       console.error(error);
@@ -164,7 +170,7 @@ export default function BookEditor() {
       const sectionId = section?.id || "section";
       const repoName = book.repoName.split("/").pop() || book.repoName;
 
-      // Save source content first (if not already saved)
+      // Save source content first
       const sourcePath = `source/${sectionId}.md`;
       await commitFileMutation.mutateAsync({
         owner: gitInfo.username,

@@ -118,7 +118,10 @@ export class GitLabClient {
     branch = 'main',
     isUpdate = false
   ): Promise<void> {
-    if (isUpdate) {
+    // Auto-detect if file exists
+    const existing = await this.getFile(projectId, path, branch);
+    
+    if (existing) {
       await this.gitlab.RepositoryFiles.edit(projectId, path, branch, content, message);
     } else {
       await this.gitlab.RepositoryFiles.create(projectId, path, branch, content, message);

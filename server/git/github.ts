@@ -130,6 +130,19 @@ export class GitHubClient {
     branch = 'main',
     sha?: string
   ): Promise<void> {
+    // If SHA not provided, try to get existing file SHA
+    let fileSha = sha;
+    if (!fileSha) {
+      try {
+        const existing = await this.getFile(owner, repo, path, branch);
+        if (existing) {
+          fileSha = existing.sha;
+        }
+      } catch (e) {
+        // File doesn't exist, that's fine for new files
+      }
+    }
+
     await this.octokit.repos.createOrUpdateFileContents({
       owner,
       repo,
@@ -137,7 +150,7 @@ export class GitHubClient {
       message,
       content: Buffer.from(content, 'utf-8').toString('base64'),
       branch,
-      sha, // Required for updates
+      sha: fileSha, // Required for updates
     });
   }
 
