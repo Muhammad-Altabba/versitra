@@ -106,11 +106,12 @@ router.get('/oauth/github/callback', async (req, res) => {
     const cookieOptions = getSessionCookieOptions(req);
     res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
-    // Redirect to dashboard
-    res.redirect('/dashboard');
+    // Redirect to dashboard with success message
+    res.redirect('/dashboard?connected=github');
   } catch (error) {
     console.error('[OAuth] GitHub callback error:', error);
-    res.status(500).send('Authentication failed');
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    res.redirect(`/dashboard?error=${encodeURIComponent('GitHub authentication failed: ' + errorMessage)}`);
   }
 });
 
@@ -216,11 +217,12 @@ router.get('/oauth/gitlab/callback', async (req, res) => {
     const cookieOptions = getSessionCookieOptions(req);
     res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
-    // Redirect to dashboard
-    res.redirect('/dashboard');
+    // Redirect to dashboard with success message
+    res.redirect('/dashboard?connected=gitlab');
   } catch (error) {
     console.error('[OAuth] GitLab callback error:', error);
-    res.status(500).send('Authentication failed');
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    res.redirect(`/dashboard?error=${encodeURIComponent('GitLab authentication failed: ' + errorMessage)}`);
   }
 });
 
