@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc";
 import { APP_TITLE } from "@/const";
-import { BookOpen, Plus, LogOut, Github, GitlabIcon as Gitlab, Loader2 } from "lucide-react";
+import { BookOpen, Plus, LogOut, Github, GitlabIcon as Gitlab, Loader2, GitBranch } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
 
@@ -23,7 +23,7 @@ export default function Dashboard() {
     enabled: isAuthenticated,
   });
 
-  const { data: gitInfo } = trpc.git.getUserInfo.useQuery(undefined, {
+  const { data: gitInfo, refetch: refetchGitInfo } = trpc.git.getUserInfo.useQuery(undefined, {
     enabled: isAuthenticated,
   });
 
@@ -82,14 +82,33 @@ export default function Dashboard() {
               <h1 className="text-2xl font-bold">{APP_TITLE}</h1>
             </div>
             <div className="flex items-center gap-4">
-              {gitInfo && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              {gitInfo ? (
+                <div className="flex items-center gap-2 text-sm">
                   {gitInfo.provider === "github" ? (
-                    <Github className="h-4 w-4" />
+                    <Github className="h-4 w-4 text-green-600" />
                   ) : (
-                    <Gitlab className="h-4 w-4" />
+                    <Gitlab className="h-4 w-4 text-green-600" />
                   )}
-                  <span>{gitInfo.username}</span>
+                  <span className="text-green-600 font-medium">{gitInfo.username}</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.location.href = '/api/oauth/github'}
+                  >
+                    <Github className="h-4 w-4 mr-2" />
+                    Connect GitHub
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.location.href = '/api/oauth/gitlab'}
+                  >
+                    <Gitlab className="h-4 w-4 mr-2" />
+                    Connect GitLab
+                  </Button>
                 </div>
               )}
               <Button variant="ghost" size="sm" onClick={logout}>
@@ -103,6 +122,45 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
+        {/* Git Connection Alert */}
+        {!gitInfo && (
+          <Card className="mb-6 border-yellow-200 bg-yellow-50">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0">
+                  <div className="rounded-full bg-yellow-100 p-2">
+                    <GitBranch className="h-6 w-6 text-yellow-600" />
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-yellow-900 mb-1">Connect Your Git Account</h3>
+                  <p className="text-sm text-yellow-800 mb-4">
+                    To create translation projects, you need to connect your GitHub or GitLab account.
+                    This allows the platform to create repositories in your account for storing translations.
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => window.location.href = '/api/oauth/github'}
+                      size="sm"
+                    >
+                      <Github className="h-4 w-4 mr-2" />
+                      Connect GitHub
+                    </Button>
+                    <Button
+                      onClick={() => window.location.href = '/api/oauth/gitlab'}
+                      size="sm"
+                      variant="outline"
+                    >
+                      <Gitlab className="h-4 w-4 mr-2" />
+                      Connect GitLab
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="text-3xl font-bold">My Translation Projects</h2>
@@ -112,7 +170,7 @@ export default function Dashboard() {
           </div>
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button disabled={!gitInfo}>
                 <Plus className="h-4 w-4 mr-2" />
                 New Project
               </Button>
@@ -217,9 +275,9 @@ export default function Dashboard() {
             <p className="text-muted-foreground mb-6">
               Create your first translation project to get started
             </p>
-            <Button onClick={() => setIsCreateDialogOpen(true)}>
+            <Button onClick={() => setIsCreateDialogOpen(true)} disabled={!gitInfo}>
               <Plus className="h-4 w-4 mr-2" />
-              Create Your First Project
+              {gitInfo ? 'Create Your First Project' : 'Connect Git Account First'}
             </Button>
           </div>
         )}
