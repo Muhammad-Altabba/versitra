@@ -55,37 +55,22 @@ export default function BookEditor() {
     }
   );
 
-  // Load sections from database on mount
-  useEffect(() => {
-    if (book) {
-      // Load sections from database if they exist
-      if (book.sections) {
-        try {
-          const parsedSections = JSON.parse(book.sections);
-          setSections(parsedSections);
-          setShowSectionsList(true);
-        } catch (error) {
-          console.error('Failed to parse sections:', error);
-        }
-      }
-      // Load source content if it exists
-      if (book.sourceContent && !sourceContent) {
-        setSourceContent(book.sourceContent);
-      }
-    }
-  }, [book]);
-
   // Process loaded progress
   useEffect(() => {
     if (progress) {
       if (progress.hasProgress) {
         setTranslationProgress(progress.translations);
+        if (progress.sourceContent && !sourceContent) {
+          setSourceContent(progress.sourceContent);
+          // Auto-split the loaded source content
+          handleSplitDocument(progress.sourceContent);
+          // Show sections list if there's progress
+          setShowSectionsList(true);
+        }
       }
       setIsLoadingProgress(false);
     }
   }, [progress]);
-
-  const updateSectionsMutation = trpc.books.updateSections.useMutation();
 
   // Helper function to split document
   const handleSplitDocument = async (content: string) => {
@@ -100,19 +85,8 @@ export default function BookEditor() {
 
       setSections(result);
       setCurrentSectionIndex(0);
-      
-      // Save sections to database
-      await updateSectionsMutation.mutateAsync({
-        id: book.id,
-        sourceContent: content,
-        sections: result,
-      });
-      
-      setShowSectionsList(true);
-      toast.success('Document split into sections successfully');
     } catch (error) {
       console.error('Failed to split document:', error);
-      toast.error('Failed to split document');
     }
   };
 

@@ -31,8 +31,6 @@ export const books = mysqlTable("books", {
   title: text("title"),
   sourceLanguage: varchar("sourceLanguage", { length: 10 }),
   targetLanguage: varchar("targetLanguage", { length: 10 }),
-  sourceContent: text("sourceContent"), // Full source document
-  sections: text("sections"), // JSON array of split sections
   createdAt: timestamp("createdAt").defaultNow(),
   lastModified: timestamp("lastModified").defaultNow(),
 });
