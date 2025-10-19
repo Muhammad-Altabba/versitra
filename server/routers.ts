@@ -5,6 +5,7 @@ import { publicProcedure, router } from "./_core/trpc";
 import { gitRouter } from "./routers/git";
 import { booksRouter } from "./routers/books";
 import { translationRouter } from "./routers/translation";
+import { exportRouter } from "./routers/export";
 
 export const appRouter = router({
   system: systemRouter,
@@ -28,6 +29,9 @@ export const appRouter = router({
 
   // Translation workflow
   translation: translationRouter,
+
+  // Export functionality
+  export: exportRouter,
 });
 
 export type AppRouter = typeof appRouter;
