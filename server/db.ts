@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, books, gitCredentials, InsertBook } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -85,4 +85,145 @@ export async function getUser(id: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+/**
+ * Git credentials management
+ */
+export async function upsertGitCredential(
+  userId: string,
+  gitProvider: 'github' | 'gitlab',
+  gitUsername: string,
+  accessToken: string,
+  refreshToken?: string,
+  tokenExpiresAt?: Date
+) {
+  const db = await getDb();
+  if (!db) {
+    console.warn('[Database] Cannot upsert git credential: database not available');
+    return;
+  }
+
+  const { encrypt } = await import('./lib/encryption');
+  const { nanoid } = await import('nanoid');
+
+  try {
+    await db
+      .insert(gitCredentials)
+      .values({
+        id: nanoid(),
+        userId,
+        gitProvider,
+        gitUsername,
+        accessToken: encrypt(accessToken),
+        refreshToken: refreshToken ? encrypt(refreshToken) : null,
+        tokenExpiresAt,
+      })
+      .onDuplicateKeyUpdate({
+        set: {
+          gitUsername,
+          accessToken: encrypt(accessToken),
+          refreshToken: refreshToken ? encrypt(refreshToken) : null,
+          tokenExpiresAt,
+          updatedAt: new Date(),
+        },
+      });
+  } catch (error) {
+    console.error('[Database] Failed to upsert git credential:', error);
+    throw error;
+  }
+}
+
+export async function getGitCredential(userId: string) {
+  const db = await getDb();
+  if (!db) {
+    console.warn('[Database] Cannot get git credential: database not available');
+    return undefined;
+  }
+
+  const { decrypt } = await import('./lib/encryption');
+
+  const result = await db
+    .select()
+    .from(gitCredentials)
+    .where(eq(gitCredentials.userId, userId))
+    .limit(1);
+
+  if (result.length === 0) {
+    return undefined;
+  }
+
+  const cred = result[0];
+  return {
+    ...cred,
+    accessToken: decrypt(cred.accessToken),
+    refreshToken: cred.refreshToken ? decrypt(cred.refreshToken) : null,
+  };
+}
+
+/**
+ * Books management
+ */
+export async function createBook(book: Omit<InsertBook, 'id' | 'createdAt' | 'lastModified'>) {
+  const db = await getDb();
+  if (!db) {
+    console.warn('[Database] Cannot create book: database not available');
+    return undefined;
+  }
+
+  const { nanoid } = await import('nanoid');
+
+  try {
+    const id = nanoid();
+    await db.insert(books).values({
+      id,
+      ...book,
+    });
+    return id;
+  } catch (error) {
+    console.error('[Database] Failed to create book:', error);
+    throw error;
+  }
+}
+
+export async function getUserBooks(userId: string) {
+  const db = await getDb();
+  if (!db) {
+    console.warn('[Database] Cannot get user books: database not available');
+    return [];
+  }
+
+  return await db.select().from(books).where(eq(books.userId, userId));
+}
+
+export async function getBook(id: string) {
+  const db = await getDb();
+  if (!db) {
+    console.warn('[Database] Cannot get book: database not available');
+    return undefined;
+  }
+
+  const result = await db.select().from(books).where(eq(books.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function updateBookLastModified(id: string) {
+  const db = await getDb();
+  if (!db) {
+    console.warn('[Database] Cannot update book: database not available');
+    return;
+  }
+
+  await db
+    .update(books)
+    .set({ lastModified: new Date() })
+    .where(eq(books.id, id));
+}
+
+export async function deleteBook(id: string) {
+  const db = await getDb();
+  if (!db) {
+    console.warn('[Database] Cannot delete book: database not available');
+    return;
+  }
+
+  await db.delete(books).where(eq(books.id, id));
+}
