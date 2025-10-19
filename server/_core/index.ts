@@ -39,12 +39,14 @@ async function startServer() {
     session({
       secret: ENV.cookieSecret,
       resave: false,
-      saveUninitialized: false,
+      saveUninitialized: true, // Changed to true to ensure session is created
       cookie: {
         secure: ENV.isProduction,
         httpOnly: true,
+        sameSite: ENV.isProduction ? 'none' : 'lax', // Allow cross-site for OAuth
         maxAge: 1000 * 60 * 15, // 15 minutes
       },
+      proxy: true, // Trust proxy headers in production
     })
   );
   
