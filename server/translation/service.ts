@@ -29,9 +29,10 @@ export async function splitDocument(
   const prompt = `You are a document analysis expert. Analyze this ${sourceLanguage} Markdown document and split it into logical translation sections.
 
 Each section should be:
-- A complete semantic unit (paragraph, heading, code block, or list)
-- Not too long (max 500 words per section)
-- Preserve Markdown structure
+- A complete semantic unit (multiple related paragraphs, a chapter section, or a logical topic)
+- Substantial size: 500-1500 words per section (optimal for LLM context)
+- Group related content together (don't split every paragraph)
+- Preserve Markdown structure and hierarchy
 
 Document:
 \`\`\`markdown
@@ -101,7 +102,8 @@ Return a JSON array of sections with this structure:
 }
 
 /**
- * Simple fallback splitting by paragraphs
+ * Simple fallback splitting by semantic chunks
+ * Creates larger sections (500-1500 words) suitable for LLM processing
  */
 function simpleSplit(content: string): DocumentSection[] {
   const lines = content.split('\n');
@@ -109,25 +111,42 @@ function simpleSplit(content: string): DocumentSection[] {
   let currentSection: string[] = [];
   let startLine = 0;
   let sectionId = 1;
+  let wordCount = 0;
+  const MIN_WORDS = 300; // Minimum words per section
+  const MAX_WORDS = 1500; // Maximum words per section
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
+    const lineWords = line.split(/\s+/).filter(w => w.length > 0).length;
+    
+    // Check if this is a major heading (# or ##)
+    const isMajorHeading = line.match(/^#{1,2}\s/);
+    
+    // Split conditions:
+    // 1. Hit a major heading AND we have enough content
+    // 2. Reached max word count
+    // 3. Double empty line (paragraph break) AND we have enough content
+    const shouldSplit = 
+      (isMajorHeading && wordCount >= MIN_WORDS) ||
+      (wordCount >= MAX_WORDS) ||
+      (line.trim() === '' && lines[i - 1]?.trim() === '' && wordCount >= MIN_WORDS);
 
-    // Empty line indicates section boundary
-    if (line.trim() === '') {
-      if (currentSection.length > 0) {
-        sections.push({
-          id: `section-${sectionId++}`,
-          content: currentSection.join('\n'),
-          startLine,
-          endLine: i - 1,
-          type: detectType(currentSection[0]),
-        });
-        currentSection = [];
-      }
-      startLine = i + 1;
-    } else {
+    if (shouldSplit && currentSection.length > 0) {
+      sections.push({
+        id: `section-${sectionId++}`,
+        content: currentSection.join('\n').trim(),
+        startLine,
+        endLine: i - 1,
+        type: detectType(currentSection[0]),
+      });
+      currentSection = [];
+      wordCount = 0;
+      startLine = i;
+    }
+    
+    if (line.trim() !== '' || currentSection.length > 0) {
       currentSection.push(line);
+      wordCount += lineWords;
     }
   }
 
@@ -135,7 +154,7 @@ function simpleSplit(content: string): DocumentSection[] {
   if (currentSection.length > 0) {
     sections.push({
       id: `section-${sectionId}`,
-      content: currentSection.join('\n'),
+      content: currentSection.join('\n').trim(),
       startLine,
       endLine: lines.length - 1,
       type: detectType(currentSection[0]),
