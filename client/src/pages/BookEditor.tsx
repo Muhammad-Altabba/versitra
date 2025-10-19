@@ -161,14 +161,27 @@ export default function BookEditor() {
 
     try {
       const section = sections[currentSectionIndex];
-      const path = `translated/${section?.id || "section"}.md`;
+      const sectionId = section?.id || "section";
+      const repoName = book.repoName.split("/").pop() || book.repoName;
 
+      // Save source content first (if not already saved)
+      const sourcePath = `source/${sectionId}.md`;
       await commitFileMutation.mutateAsync({
         owner: gitInfo.username,
-        repo: book.repoName.split("/").pop() || book.repoName,
-        path,
+        repo: repoName,
+        path: sourcePath,
+        content: section?.content || '',
+        message: `source/${sectionId}`,
+      });
+
+      // Save translation
+      const translatedPath = `translated/${sectionId}.md`;
+      await commitFileMutation.mutateAsync({
+        owner: gitInfo.username,
+        repo: repoName,
+        path: translatedPath,
         content: translatedContent,
-        message: `translate/${section?.id || "section"}`,
+        message: `translate/${sectionId}`,
       });
 
       // Update local progress
