@@ -158,20 +158,29 @@ export class GitHubClient {
    * Get commit history
    */
   async getCommitHistory(owner: string, repo: string, path?: string, limit = 50): Promise<GitHubCommit[]> {
-    const { data } = await this.octokit.repos.listCommits({
-      owner,
-      repo,
-      path,
-      per_page: limit,
-    });
+    try {
+      const { data } = await this.octokit.repos.listCommits({
+        owner,
+        repo,
+        path,
+        per_page: limit,
+      });
 
-    return data.map(commit => ({
-      sha: commit.sha,
-      message: commit.commit.message,
-      author: commit.commit.author?.name || 'Unknown',
-      date: commit.commit.author?.date || new Date().toISOString(),
-      url: commit.html_url,
-    }));
+      return data.map(commit => ({
+        sha: commit.sha,
+        message: commit.commit.message,
+        author: commit.commit.author?.name || 'Unknown',
+        date: commit.commit.author?.date || new Date().toISOString(),
+        url: commit.html_url,
+      }));
+    } catch (error: any) {
+      // Repository might be empty or not exist yet
+      if (error.status === 404 || error.status === 409) {
+        console.log(`[GitHub] No commits found for ${owner}/${repo}`);
+        return [];
+      }
+      throw error;
+    }
   }
 
   /**
@@ -240,6 +249,16 @@ export class GitHubClient {
       message,
       sha,
       branch,
+    });
+  }
+
+  /**
+   * Delete entire repository
+   */
+  async deleteRepository(owner: string, repo: string): Promise<void> {
+    await this.octokit.repos.delete({
+      owner,
+      repo,
     });
   }
 }

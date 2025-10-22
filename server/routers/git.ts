@@ -202,6 +202,8 @@ export const gitRouter = router({
 
   /**
    * Load translation progress from Git repository
+   * DEPRECATED: Use books.getSections instead for cached data
+   * This endpoint is kept for backward compatibility but will query Git
    */
   loadTranslationProgress: protectedProcedure
     .input(
@@ -215,13 +217,7 @@ export const gitRouter = router({
       const { client } = await getGitClient(ctx.user.id);
 
       try {
-        // List files in source/ and translated/ directories
-        const sourceFiles = await (client as any).listFiles(
-          input.owner,
-          input.repo,
-          'source',
-          input.branch
-        );
+        // Only list files to check what's been translated (don't read content)
         const translatedFiles = await (client as any).listFiles(
           input.owner,
           input.repo,
@@ -229,54 +225,25 @@ export const gitRouter = router({
           input.branch
         );
 
-        // Load source content if exists
-        let sourceContent = '';
-        if (sourceFiles && sourceFiles.length > 0) {
-          // Combine all source files
-          for (const file of sourceFiles) {
-            if (file.name.endsWith('.md')) {
-              const content = await client.getFile(
-                input.owner,
-                input.repo,
-                file.path, // Use full path from listFiles
-                input.branch
-              );
-              if (content) {
-                sourceContent += content.content + '\n\n';
-              }
-            }
-          }
-        }
-
-        // Load translated sections
-        const translations: Record<string, string> = {};
+        // Build a map of translated section IDs (file existence only)
+        const translatedSections: string[] = [];
         if (translatedFiles && translatedFiles.length > 0) {
           for (const file of translatedFiles) {
             if (file.name.endsWith('.md')) {
-              const content = await client.getFile(
-                input.owner,
-                input.repo,
-                file.path, // Use full path from listFiles
-                input.branch
-              );
-              if (content) {
-                const sectionId = file.name.replace('.md', '');
-                translations[sectionId] = content.content;
-              }
+              const sectionId = file.name.replace('.md', '');
+              translatedSections.push(sectionId);
             }
           }
         }
 
         return {
-          sourceContent: sourceContent.trim(),
-          translations,
-          hasProgress: Object.keys(translations).length > 0,
+          translatedSections,
+          hasProgress: translatedSections.length > 0,
         };
       } catch (error) {
         console.error('[Git] Failed to load translation progress:', error);
         return {
-          sourceContent: '',
-          translations: {},
+          translatedSections: [],
           hasProgress: false,
         };
       }

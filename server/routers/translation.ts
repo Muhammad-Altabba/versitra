@@ -2,6 +2,8 @@ import { z } from 'zod';
 import { protectedProcedure, router } from '../_core/trpc';
 import { splitDocument, generateTranslationDraft, batchGenerateDrafts } from '../translation/service';
 import { extractTextFromPDF, convertPDFTextToMarkdown } from '../translation/pdfExtractor';
+import { updateBookSections, getBook } from '../db';
+import { TRPCError } from '@trpc/server';
 
 /**
  * Translation router
@@ -47,13 +49,29 @@ export const translationRouter = router({
   splitDocument: protectedProcedure
     .input(
       z.object({
+        bookId: z.string(),
         content: z.string(),
         sourceLanguage: z.string(),
         targetLanguage: z.string(),
       })
     )
-    .mutation(async ({ input }) => {
-      return await splitDocument(input.content, input.sourceLanguage, input.targetLanguage);
+    .mutation(async ({ ctx, input }) => {
+      // Verify book ownership
+      const book = await getBook(input.bookId);
+      if (!book || book.userId !== ctx.user.id) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Access denied',
+        });
+      }
+
+      // Split document into sections
+      const sections = await splitDocument(input.content, input.sourceLanguage, input.targetLanguage);
+      
+      // Save sections to database for caching
+      await updateBookSections(input.bookId, sections);
+      
+      return sections;
     }),
 
   /**

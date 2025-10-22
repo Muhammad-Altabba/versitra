@@ -227,3 +227,55 @@ export async function deleteBook(id: string) {
 
   await db.delete(books).where(eq(books.id, id));
 }
+
+
+export async function updateBookSections(
+  id: string,
+  sections: Array<{ id: string; content: string; startLine: number; endLine: number }>
+) {
+  const db = await getDb();
+  if (!db) {
+    console.warn('[Database] Cannot update book sections: database not available');
+    return;
+  }
+
+  await db
+    .update(books)
+    .set({ 
+      sections,
+      lastModified: new Date() 
+    })
+    .where(eq(books.id, id));
+}
+
+export async function updateSectionMetadata(
+  id: string,
+  sectionId: string,
+  metadata: { translated: boolean; lastModified?: string }
+) {
+  const db = await getDb();
+  if (!db) {
+    console.warn('[Database] Cannot update section metadata: database not available');
+    return;
+  }
+
+  // Get current book
+  const book = await getBook(id);
+  if (!book) {
+    console.warn('[Database] Book not found');
+    return;
+  }
+
+  // Update metadata
+  const currentMetadata = (book.sectionsMetadata as Record<string, any>) || {};
+  currentMetadata[sectionId] = metadata;
+
+  await db
+    .update(books)
+    .set({ 
+      sectionsMetadata: currentMetadata,
+      lastModified: new Date() 
+    })
+    .where(eq(books.id, id));
+}
+

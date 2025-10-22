@@ -1,8 +1,8 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "6a45c1b5-c4a1-44cc-95fe-80a840081468",
-  "prevId": "573f5aef-f507-494a-8a67-908e4fb8bfdf",
+  "id": "3d465284-4ab6-444c-96e9-c079085b0cc5",
+  "prevId": "6a45c1b5-c4a1-44cc-95fe-80a840081468",
   "tables": {
     "books": {
       "name": "books",
@@ -59,6 +59,20 @@
         "targetLanguage": {
           "name": "targetLanguage",
           "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "sections": {
+          "name": "sections",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "sectionsMetadata": {
+          "name": "sectionsMetadata",
+          "type": "json",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false

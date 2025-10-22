@@ -132,18 +132,27 @@ export class GitLabClient {
    * Get commit history
    */
   async getCommitHistory(projectId: string, path?: string, limit = 50): Promise<GitLabCommit[]> {
-    const commits = await this.gitlab.Commits.all(projectId, {
-      path,
-      perPage: limit,
-    });
+    try {
+      const commits = await this.gitlab.Commits.all(projectId, {
+        path,
+        perPage: limit,
+      });
 
-    return commits.map((commit: any) => ({
-      sha: String(commit.id),
-      message: String(commit.message),
-      author: String(commit.author_name || 'Unknown'),
-      date: String(commit.created_at),
-      url: String(commit.web_url || ''),
-    }));
+      return commits.map((commit: any) => ({
+        sha: String(commit.id),
+        message: String(commit.message),
+        author: String(commit.author_name || 'Unknown'),
+        date: String(commit.created_at),
+        url: String(commit.web_url || ''),
+      }));
+    } catch (error: any) {
+      // Repository might be empty or not exist yet
+      if (error.response?.status === 404) {
+        console.log(`[GitLab] No commits found for project ${projectId}`);
+        return [];
+      }
+      throw error;
+    }
   }
 
   /**
@@ -195,6 +204,13 @@ export class GitLabClient {
     branch = 'main'
   ): Promise<void> {
     await this.gitlab.RepositoryFiles.remove(projectId, path, branch, message);
+  }
+
+  /**
+   * Delete entire project/repository
+   */
+  async deleteRepository(projectId: string): Promise<void> {
+    await this.gitlab.Projects.remove(projectId);
   }
 }
 

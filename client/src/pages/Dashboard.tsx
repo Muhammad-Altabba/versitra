@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc";
 import { APP_TITLE } from "@/const";
-import { BookOpen, Plus, LogOut, Github, GitlabIcon as Gitlab, Loader2, GitBranch } from "lucide-react";
+import { BookOpen, Plus, LogOut, Github, GitlabIcon as Gitlab, Loader2, GitBranch, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
@@ -50,6 +50,11 @@ export default function Dashboard() {
 
   const createRepoMutation = trpc.git.createRepo.useMutation();
   const createBookMutation = trpc.books.create.useMutation();
+  const deleteBookMutation = trpc.books.delete.useMutation();
+  
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [bookToDelete, setBookToDelete] = useState<{ id: string; title: string } | null>(null);
+  const [deleteRepo, setDeleteRepo] = useState(true);
 
   if (loading || !isAuthenticated) {
     return (
@@ -87,8 +92,29 @@ export default function Dashboard() {
       setBookTitle("");
       setIsCreateDialogOpen(false);
       refetch();
+      toast.success("Project created successfully!");
     } catch (error) {
       console.error("Failed to create book:", error);
+      toast.error("Failed to create project");
+    }
+  };
+
+  const handleDeleteBook = async () => {
+    if (!bookToDelete) return;
+
+    try {
+      await deleteBookMutation.mutateAsync({
+        id: bookToDelete.id,
+        deleteRepo,
+      });
+
+      setDeleteDialogOpen(false);
+      setBookToDelete(null);
+      refetch();
+      toast.success(deleteRepo ? "Project and repository deleted" : "Project deleted (repository kept)");
+    } catch (error) {
+      console.error("Failed to delete book:", error);
+      toast.error("Failed to delete project");
     }
   };
 

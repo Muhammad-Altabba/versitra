@@ -91,7 +91,11 @@ Return a JSON array of sections with this structure:
 
     const messageContent = response.choices[0].message.content;
     const contentText = typeof messageContent === 'string' ? messageContent : '';
-    const result = JSON.parse(contentText || '{"sections":[]}');
+    
+    // Sanitize control characters that break JSON parsing
+    const sanitized = contentText.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+    
+    const result = JSON.parse(sanitized || '{"sections":[]}');
     return result.sections;
   } catch (error) {
     console.error('[Translation] Failed to split document with AI:', error);

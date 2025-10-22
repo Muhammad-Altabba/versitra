@@ -22,6 +22,13 @@
       "when": 1760907152921,
       "tag": "0002_parched_sentinels",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1760908133175,
+      "tag": "0003_rich_red_hulk",
+      "breakpoints": true
     }
   ]
 }

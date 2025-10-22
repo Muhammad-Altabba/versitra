@@ -44,40 +44,70 @@ export default function BookEditor() {
     enabled: isAuthenticated,
   });
 
-  // Load translation progress from Git
-  const { data: progress } = trpc.git.loadTranslationProgress.useQuery(
+  // Load cached sections and metadata from database (fast!)
+  const { data: cachedData, isLoading: isLoadingSections } = trpc.books.getSections.useQuery(
+    { id: bookId || '' },
+    { enabled: !!bookId && isAuthenticated }
+  );
+
+  // VERIFICATION MODE: Also load from Git to compare (temporary for debugging)
+  const { data: gitProgress } = trpc.git.loadTranslationProgress.useQuery(
     {
       owner: gitInfo?.username || '',
       repo: book?.repoName.split('/').pop() || '',
     },
     {
-      enabled: !!book && !!gitInfo && isAuthenticated,
+      enabled: !!book && !!gitInfo && isAuthenticated && !!cachedData,
     }
   );
 
-  // Process loaded progress
+  // Compare database cache with Git reality
   useEffect(() => {
-    if (progress) {
-      if (progress.hasProgress) {
-        setTranslationProgress(progress.translations);
-        if (progress.sourceContent && !sourceContent) {
-          setSourceContent(progress.sourceContent);
-          // Auto-split the loaded source content
-          handleSplitDocument(progress.sourceContent);
-          // Show sections list if there's progress
-          setShowSectionsList(true);
-        }
+    if (cachedData && gitProgress) {
+      const dbTranslated = Object.keys(cachedData.sectionsMetadata || {}).filter(
+        (k) => cachedData.sectionsMetadata?.[k]?.translated
+      );
+      const gitTranslated = gitProgress.translatedSections;
+      
+      console.log('[VERIFICATION] Database says translated:', dbTranslated);
+      console.log('[VERIFICATION] Git says translated:', gitTranslated);
+      
+      // Check for mismatches
+      const inDbNotGit = dbTranslated.filter((s) => !gitTranslated.includes(s));
+      const inGitNotDb = gitTranslated.filter((s) => !dbTranslated.includes(s));
+      
+      if (inDbNotGit.length > 0) {
+        console.warn('[VERIFICATION] ⚠️ In DB but not in Git:', inDbNotGit);
+      }
+      if (inGitNotDb.length > 0) {
+        console.warn('[VERIFICATION] ⚠️ In Git but not in DB:', inGitNotDb);
+      }
+      if (inDbNotGit.length === 0 && inGitNotDb.length === 0) {
+        console.log('[VERIFICATION] ✅ Database and Git are in sync!');
+      }
+    }
+  }, [cachedData, gitProgress]);
+
+  // Load sections from cache on mount
+  useEffect(() => {
+    if (cachedData) {
+      if (cachedData.sections && cachedData.sections.length > 0) {
+        // Sections exist in cache - load them and show sections list
+        console.log('[BookEditor] Loading cached sections:', cachedData.sections.length);
+        setSections(cachedData.sections);
+        setShowSectionsList(false); // Show editor, not sections list
       }
       setIsLoadingProgress(false);
     }
-  }, [progress]);
+  }, [cachedData]);
 
   // Helper function to split document
   const handleSplitDocument = async (content: string) => {
-    if (!book) return;
+    if (!book || !bookId) return;
     
     try {
       const result = await splitDocumentMutation.mutateAsync({
+        bookId,
         content,
         sourceLanguage: book.sourceLanguage || "en",
         targetLanguage: book.targetLanguage || "es",
@@ -90,23 +120,65 @@ export default function BookEditor() {
     }
   };
 
-  // Load existing translation when section changes
+  // Load existing translation when section changes (lazy load from Git)
   useEffect(() => {
-    if (sections.length > 0 && sections[currentSectionIndex]) {
-      const sectionId = sections[currentSectionIndex].id;
-      if (translationProgress[sectionId]) {
-        setTranslatedContent(translationProgress[sectionId]);
-      } else {
-        setTranslatedContent('');
+    const loadSectionTranslation = async () => {
+      if (sections.length > 0 && sections[currentSectionIndex] && book && gitInfo) {
+        const sectionId = sections[currentSectionIndex].id;
+        
+        // Check if already loaded in memory
+        if (translationProgress[sectionId]) {
+          setTranslatedContent(translationProgress[sectionId]);
+          return;
+        }
+        
+        // Check metadata first to see if translation exists
+        const metadata = cachedData?.sectionsMetadata?.[sectionId];
+        if (!metadata || !metadata.translated) {
+          // Not translated yet - don't try to load from Git (avoid 404)
+          console.log(`[BookEditor] Section ${sectionId} not translated yet`);
+          setTranslatedContent('');
+          return;
+        }
+        
+        // Translation exists according to metadata - load from Git
+        console.log(`[BookEditor] Loading translation for ${sectionId} from Git`);
+        try {
+          const content = await utils.git.getFile.fetch({
+            owner: gitInfo.username,
+            repo: book.repoName.split('/').pop() || '',
+            path: `translated/${sectionId}.md`,
+            branch: 'main',
+          });
+          
+          if (content) {
+            setTranslatedContent(content.content);
+            // Cache it in memory
+            setTranslationProgress(prev => ({
+              ...prev,
+              [sectionId]: content.content,
+            }));
+          } else {
+            console.warn(`[BookEditor] Metadata says translated but file not found: ${sectionId}`);
+            setTranslatedContent('');
+          }
+        } catch (error) {
+          console.error(`[BookEditor] Failed to load translation for ${sectionId}:`, error);
+          setTranslatedContent('');
+        }
       }
-    }
-  }, [currentSectionIndex, sections, translationProgress]);
+    };
+    
+    loadSectionTranslation();
+  }, [currentSectionIndex, sections, book, gitInfo, cachedData]);
 
   const splitDocumentMutation = trpc.translation.splitDocument.useMutation();
   const uploadPDFMutation = trpc.translation.uploadPDF.useMutation();
   const generateDraftMutation = trpc.translation.generateDraft.useMutation();
+  const utils = trpc.useUtils();
   const commitFileMutation = trpc.git.commitFile.useMutation();
   const exportPDFMutation = trpc.export.bookToPDF.useMutation();
+  const updateMetadataMutation = trpc.books.updateSectionMetadata.useMutation();
 
   const handleProcessPDF = async () => {
     if (!pdfFile || !book) return;
@@ -198,6 +270,15 @@ export default function BookEditor() {
         ...prev,
         [section?.id || 'section']: translatedContent,
       }));
+
+      // Update metadata in database (for fast loading next time)
+      if (bookId) {
+        await updateMetadataMutation.mutateAsync({
+          id: bookId,
+          sectionId,
+          translated: true,
+        });
+      }
 
       toast.success("Translation saved to Git");
 
@@ -306,14 +387,18 @@ export default function BookEditor() {
               <CardHeader>
                 <CardTitle>Translation Sections</CardTitle>
                 <CardDescription>
-                  {Object.keys(translationProgress).length} of {sections.length} sections translated
-                  ({Math.round((Object.keys(translationProgress).length / sections.length) * 100)}%)
+                  {(() => {
+                    const metadata = cachedData?.sectionsMetadata || {};
+                    const translatedCount = Object.values(metadata).filter((m: any) => m.translated).length;
+                    return `${translatedCount} of ${sections.length} sections translated (${Math.round((translatedCount / sections.length) * 100)}%)`;
+                  })()}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   {sections.map((section, index) => {
-                    const isTranslated = !!translationProgress[section.id];
+                    const metadata = cachedData?.sectionsMetadata || {};
+                    const isTranslated = metadata[section.id]?.translated || false;
                     return (
                       <button
                         key={section.id}

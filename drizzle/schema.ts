@@ -1,4 +1,4 @@
-import { mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { mysqlEnum, mysqlTable, text, timestamp, varchar, json } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -31,6 +31,8 @@ export const books = mysqlTable("books", {
   title: text("title"),
   sourceLanguage: varchar("sourceLanguage", { length: 10 }),
   targetLanguage: varchar("targetLanguage", { length: 10 }),
+  sections: json("sections").$type<Array<{ id: string; content: string; startLine: number; endLine: number }>>(), // Cached document sections
+  sectionsMetadata: json("sectionsMetadata").$type<Record<string, { translated: boolean; lastModified?: string }>>(), // Translation status per section
   createdAt: timestamp("createdAt").defaultNow(),
   lastModified: timestamp("lastModified").defaultNow(),
 });
