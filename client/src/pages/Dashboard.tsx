@@ -292,21 +292,34 @@ export default function Dashboard() {
         ) : books && books.length > 0 ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {books.map((book) => (
-              <Card
-                key={book.id}
-                className="cursor-pointer hover:shadow-lg transition-shadow"
-                onClick={() => setLocation(`/book/${book.id}`)}
-              >
+              <Card key={book.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BookOpen className="h-5 w-5" />
-                    {book.title || book.repoName}
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <BookOpen className="h-5 w-5" />
+                      {book.title || book.repoName}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setBookToDelete({ id: book.id, title: book.title || book.repoName });
+                        setDeleteDialogOpen(true);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </CardTitle>
                   <CardDescription>
                     {book.sourceLanguage} → {book.targetLanguage}
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent
+                  className="cursor-pointer"
+                  onClick={() => setLocation(`/book/${book.id}`)}
+                >
                   <div className="text-sm text-muted-foreground space-y-1">
                     <p>Repository: {book.repoName}</p>
                     <p>Last modified: {new Date(book.lastModified || book.createdAt || "").toLocaleDateString()}</p>
@@ -329,6 +342,64 @@ export default function Dashboard() {
           </div>
         )}
       </main>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Project</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{bookToDelete?.title}"?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex items-start space-x-2">
+              <input
+                type="checkbox"
+                id="delete-repo"
+                checked={deleteRepo}
+                onChange={(e) => setDeleteRepo(e.target.checked)}
+                className="mt-1"
+              />
+              <div>
+                <label htmlFor="delete-repo" className="text-sm font-medium cursor-pointer">
+                  Also delete Git repository
+                </label>
+                <p className="text-sm text-muted-foreground">
+                  This will permanently delete the repository from {gitInfo?.provider === 'github' ? 'GitHub' : 'GitLab'}.
+                  This action cannot be undone.
+                </p>
+              </div>
+            </div>
+            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+              <p className="text-sm text-destructive font-medium">
+                ⚠️ Warning: This action is permanent and cannot be undone!
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setBookToDelete(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteBook}
+              disabled={deleteBookMutation.isPending}
+            >
+              {deleteBookMutation.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Delete {deleteRepo ? 'Project & Repository' : 'Project Only'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

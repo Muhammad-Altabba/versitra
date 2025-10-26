@@ -279,3 +279,118 @@ export async function updateSectionMetadata(
     .where(eq(books.id, id));
 }
 
+
+
+/**
+ * Save a draft translation for a section (not committed to Git yet)
+ */
+export async function saveDraft(
+  bookId: string,
+  sectionId: string,
+  source: string,
+  translated: string
+) {
+  const db = await getDb();
+  if (!db) {
+    console.warn('[Database] Cannot save draft: database not available');
+    return;
+  }
+
+  // Get current book
+  const book = await getBook(bookId);
+  if (!book) {
+    console.warn('[Database] Book not found');
+    return;
+  }
+
+  // Update drafts
+  const currentDrafts = (book.drafts as Record<string, any>) || {};
+  currentDrafts[sectionId] = {
+    source,
+    translated,
+    lastModified: new Date().toISOString(),
+  };
+
+  await db
+    .update(books)
+    .set({ 
+      drafts: currentDrafts,
+      lastModified: new Date() 
+    })
+    .where(eq(books.id, bookId));
+}
+
+/**
+ * Get draft for a specific section
+ */
+export async function getDraft(bookId: string, sectionId: string) {
+  const book = await getBook(bookId);
+  if (!book || !book.drafts) {
+    return null;
+  }
+
+  const drafts = book.drafts as Record<string, any>;
+  return drafts[sectionId] || null;
+}
+
+/**
+ * Get all drafts for a book
+ */
+export async function getAllDrafts(bookId: string) {
+  const book = await getBook(bookId);
+  if (!book || !book.drafts) {
+    return {};
+  }
+
+  return book.drafts as Record<string, { source: string; translated: string; lastModified: string }>;
+}
+
+/**
+ * Clear draft after committing to Git
+ */
+export async function clearDraft(bookId: string, sectionId: string) {
+  const db = await getDb();
+  if (!db) {
+    console.warn('[Database] Cannot clear draft: database not available');
+    return;
+  }
+
+  // Get current book
+  const book = await getBook(bookId);
+  if (!book) {
+    console.warn('[Database] Book not found');
+    return;
+  }
+
+  // Remove draft
+  const currentDrafts = (book.drafts as Record<string, any>) || {};
+  delete currentDrafts[sectionId];
+
+  await db
+    .update(books)
+    .set({ 
+      drafts: currentDrafts,
+      lastModified: new Date() 
+    })
+    .where(eq(books.id, bookId));
+}
+
+/**
+ * Clear all drafts for a book
+ */
+export async function clearAllDrafts(bookId: string) {
+  const db = await getDb();
+  if (!db) {
+    console.warn('[Database] Cannot clear drafts: database not available');
+    return;
+  }
+
+  await db
+    .update(books)
+    .set({ 
+      drafts: {},
+      lastModified: new Date() 
+    })
+    .where(eq(books.id, bookId));
+}
+

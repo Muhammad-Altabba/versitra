@@ -8,6 +8,11 @@ import {
   deleteBook,
   getGitCredential,
   updateSectionMetadata,
+  saveDraft,
+  getDraft,
+  getAllDrafts,
+  clearDraft,
+  clearAllDrafts,
 } from '../db';
 import { GitHubClient } from '../git/github';
 import { GitLabClient } from '../git/gitlab';
@@ -235,6 +240,216 @@ export const booksRouter = router({
       });
 
       return { success: true };
+    }),
+
+  /**
+   * Save a draft translation (not committed to Git yet)
+   */
+  saveDraft: protectedProcedure
+    .input(
+      z.object({
+        bookId: z.string(),
+        sectionId: z.string(),
+        source: z.string(),
+        translated: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const book = await getBook(input.bookId);
+
+      if (!book || book.userId !== ctx.user.id) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Access denied',
+        });
+      }
+
+      await saveDraft(input.bookId, input.sectionId, input.source, input.translated);
+      return { success: true };
+    }),
+
+  /**
+   * Get draft for a specific section
+   */
+  getDraft: protectedProcedure
+    .input(
+      z.object({
+        bookId: z.string(),
+        sectionId: z.string(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const book = await getBook(input.bookId);
+
+      if (!book || book.userId !== ctx.user.id) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Access denied',
+        });
+      }
+
+      const draft = await getDraft(input.bookId, input.sectionId);
+      return draft;
+    }),
+
+  /**
+   * Get all drafts for a book
+   */
+  getAllDrafts: protectedProcedure
+    .input(z.object({ bookId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const book = await getBook(input.bookId);
+
+      if (!book || book.userId !== ctx.user.id) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Access denied',
+        });
+      }
+
+      const drafts = await getAllDrafts(input.bookId);
+      return drafts;
+    }),
+
+  /**
+   * Clear draft after committing to Git
+   */
+  clearDraft: protectedProcedure
+    .input(
+      z.object({
+        bookId: z.string(),
+        sectionId: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const book = await getBook(input.bookId);
+
+      if (!book || book.userId !== ctx.user.id) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Access denied',
+        });
+      }
+
+      await clearDraft(input.bookId, input.sectionId);
+      return { success: true };
+    }),
+
+  /**
+   * Clear all drafts for a book
+   */
+  clearAllDrafts: protectedProcedure
+    .input(z.object({ bookId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const book = await getBook(input.bookId);
+
+      if (!book || book.userId !== ctx.user.id) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Access denied',
+        });
+      }
+
+      await clearAllDrafts(input.bookId);
+      return { success: true };
+    }),
+
+  /**
+   * Commit all drafts to Git as a new version
+   */
+  commitVersion: protectedProcedure
+    .input(
+      z.object({
+        bookId: z.string(),
+        message: z.string().default('Update translations'),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const book = await getBook(input.bookId);
+
+      if (!book || book.userId !== ctx.user.id) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Access denied',
+        });
+      }
+
+      // Get all drafts
+      const drafts = await getAllDrafts(input.bookId);
+      const draftEntries = Object.entries(drafts);
+
+      if (draftEntries.length === 0) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'No drafts to commit',
+        });
+      }
+
+      // Get Git client
+      const { client } = await getGitClient(ctx.user.id);
+
+      // Commit each draft to Git
+      const commitPromises = draftEntries.map(async ([sectionId, draft]) => {
+        if (book.gitProvider === 'github') {
+          const [owner, repo] = book.repoName.split('/');
+          
+          // Commit source
+          await (client as any).commitFile(
+            owner || ctx.user.id.replace('github:', ''),
+            repo || book.repoName,
+            `source/${sectionId}.md`,
+            draft.source,
+            input.message,
+            'main'
+          );
+          
+          // Commit translation
+          await (client as any).commitFile(
+            owner || ctx.user.id.replace('github:', ''),
+            repo || book.repoName,
+            `translated/${sectionId}.md`,
+            draft.translated,
+            input.message,
+            'main'
+          );
+        } else if (book.gitProvider === 'gitlab') {
+          // Commit source
+          await (client as any).commitFile(
+            book.repoName,
+            `source/${sectionId}.md`,
+            draft.source,
+            input.message,
+            'main'
+          );
+          
+          // Commit translation
+          await (client as any).commitFile(
+            book.repoName,
+            `translated/${sectionId}.md`,
+            draft.translated,
+            input.message,
+            'main'
+          );
+        }
+
+        // Update metadata to mark as translated
+        await updateSectionMetadata(input.bookId, sectionId, {
+          translated: true,
+          lastModified: new Date().toISOString(),
+        });
+      });
+
+      // Wait for all commits
+      await Promise.all(commitPromises);
+
+      // Clear all drafts after successful commit
+      await clearAllDrafts(input.bookId);
+
+      console.log(`[Books] Committed ${draftEntries.length} drafts for book ${input.bookId}`);
+      return { 
+        success: true, 
+        committedCount: draftEntries.length 
+      };
     }),
 });
 

@@ -92,10 +92,11 @@ export default function BookEditor() {
   useEffect(() => {
     if (cachedData) {
       if (cachedData.sections && cachedData.sections.length > 0) {
-        // Sections exist in cache - load them and show sections list
+        // Sections exist in cache - load them
         console.log('[BookEditor] Loading cached sections:', cachedData.sections.length);
         setSections(cachedData.sections);
-        setShowSectionsList(false); // Show editor, not sections list
+        // Keep showing sections list so user can see all sections
+        // Don't auto-hide it like before (that was the bug)
       }
       setIsLoadingProgress(false);
     }

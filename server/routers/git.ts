@@ -152,12 +152,39 @@ export const gitRouter = router({
         repo: z.string(),
         base: z.string(),
         head: z.string(),
+        path: z.string().optional(), // Optional: filter diff by specific file path
       })
     )
     .query(async ({ ctx, input }) => {
       const { client } = await getGitClient(ctx.user.id);
 
-      return await client.getDiff(input.owner, input.repo, input.base, input.head);
+      const fullDiff = await client.getDiff(input.owner, input.repo, input.base, input.head);
+      
+      // If path is specified, filter diff to only that file
+      if (input.path) {
+        const lines = fullDiff.split('\n');
+        const filtered: string[] = [];
+        let inTargetFile = false;
+        
+        for (const line of lines) {
+          if (line.startsWith('diff --git')) {
+            // Check if this is the target file
+            inTargetFile = line.includes(input.path);
+          }
+          
+          if (inTargetFile) {
+            filtered.push(line);
+            // Stop at next file
+            if (line.startsWith('diff --git') && !line.includes(input.path)) {
+              break;
+            }
+          }
+        }
+        
+        return filtered.join('\n');
+      }
+      
+      return fullDiff;
     }),
 
   /**

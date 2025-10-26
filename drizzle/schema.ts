@@ -33,6 +33,7 @@ export const books = mysqlTable("books", {
   targetLanguage: varchar("targetLanguage", { length: 10 }),
   sections: json("sections").$type<Array<{ id: string; content: string; startLine: number; endLine: number }>>(), // Cached document sections
   sectionsMetadata: json("sectionsMetadata").$type<Record<string, { translated: boolean; lastModified?: string }>>(), // Translation status per section
+  drafts: json("drafts").$type<Record<string, { source: string; translated: string; lastModified: string }>>(), // Draft translations not yet committed to Git
   createdAt: timestamp("createdAt").defaultNow(),
   lastModified: timestamp("lastModified").defaultNow(),
 });
