@@ -161,20 +161,35 @@ export const booksRouter = router({
       // Delete from Git if requested
       if (input.deleteRepo) {
         try {
-          const { client } = await getGitClient(ctx.user.id);
+          const { client, username } = await getGitClient(ctx.user.id);
+          
+          console.log(`[Books] Attempting to delete repository: ${book.repoName} (provider: ${book.gitProvider})`);
           
           if (book.gitProvider === 'github') {
-            // GitHub: owner/repo format
-            const [owner, repo] = book.repoName.split('/');
-            await (client as any).deleteRepository(owner || ctx.user.id.replace('github:', ''), repo || book.repoName);
+            // GitHub: repoName might be just "repo" or "owner/repo"
+            let owner: string;
+            let repo: string;
+            
+            if (book.repoName.includes('/')) {
+              [owner, repo] = book.repoName.split('/');
+            } else {
+              // If no slash, use current user as owner
+              owner = username;
+              repo = book.repoName;
+            }
+            
+            console.log(`[Books] Deleting GitHub repo: ${owner}/${repo}`);
+            await (client as any).deleteRepository(owner, repo);
+            console.log(`[Books] Successfully deleted GitHub repository: ${owner}/${repo}`);
           } else if (book.gitProvider === 'gitlab') {
             // GitLab: use full repo name as project ID
+            console.log(`[Books] Deleting GitLab repo: ${book.repoName}`);
             await (client as any).deleteRepository(book.repoName);
+            console.log(`[Books] Successfully deleted GitLab repository: ${book.repoName}`);
           }
-          
-          console.log(`[Books] Deleted repository: ${book.repoName}`);
         } catch (error) {
           console.error('[Books] Failed to delete repository:', error);
+          console.error('[Books] Error details:', JSON.stringify(error, null, 2));
           // Continue with database deletion even if Git deletion fails
         }
       }
