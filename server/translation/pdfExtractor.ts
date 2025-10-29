@@ -10,30 +10,76 @@ const execAsync = promisify(exec);
  * Extract text content from PDF buffer using pdftotext
  */
 export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
-  const tempPath = join(tmpdir(), `pdf-${Date.now()}.pdf`);
-  const outputPath = join(tmpdir(), `pdf-${Date.now()}.txt`);
+  const timestamp = Date.now();
+  const tempPath = join(tmpdir(), `pdf-${timestamp}.pdf`);
+  const outputPath = join(tmpdir(), `pdf-${timestamp}.txt`);
+  
+  console.log('[PDF] Starting extraction...');
+  console.log('[PDF] Temp PDF path:', tempPath);
+  console.log('[PDF] Output path:', outputPath);
+  console.log('[PDF] Buffer size:', buffer.length, 'bytes');
   
   try {
     // Write buffer to temporary file
     await writeFile(tempPath, buffer);
+    console.log('[PDF] PDF file written successfully');
+    
+    // Check if pdftotext is available
+    try {
+      await execAsync('which pdftotext');
+      console.log('[PDF] pdftotext is available');
+    } catch (e) {
+      console.error('[PDF] pdftotext not found in PATH');
+      throw new Error('pdftotext utility not found. Please install poppler-utils.');
+    }
     
     // Use pdftotext to extract text
-    await execAsync(`pdftotext "${tempPath}" "${outputPath}"`);
+    console.log('[PDF] Running pdftotext...');
+    const { stdout: pdfOutput, stderr: pdfError } = await execAsync(
+      `pdftotext "${tempPath}" "${outputPath}"`,
+      { maxBuffer: 10 * 1024 * 1024 } // 10MB buffer
+    );
+    
+    if (pdfError) {
+      console.warn('[PDF] pdftotext stderr:', pdfError);
+    }
+    console.log('[PDF] pdftotext completed');
     
     // Read extracted text
-    const { stdout } = await execAsync(`cat "${outputPath}"`);
+    const { stdout, stderr } = await execAsync(`cat "${outputPath}"`);
     
+    if (stderr) {
+      console.warn('[PDF] cat stderr:', stderr);
+    }
+    
+    if (!stdout || stdout.trim().length === 0) {
+      console.warn('[PDF] Extracted text is empty');
+      throw new Error('PDF appears to be empty or contains only images. Please use a PDF with selectable text.');
+    }
+    
+    console.log('[PDF] Successfully extracted', stdout.length, 'characters');
     return stdout;
-  } catch (error) {
+  } catch (error: any) {
     console.error('[PDF] Extraction error:', error);
-    throw new Error('Failed to extract text from PDF. Ensure pdftotext is installed.');
+    console.error('[PDF] Error message:', error.message);
+    console.error('[PDF] Error stack:', error.stack);
+    
+    // Provide more specific error messages
+    if (error.message.includes('pdftotext')) {
+      throw new Error('Failed to run pdftotext. Please ensure poppler-utils is installed.');
+    } else if (error.message.includes('empty')) {
+      throw error; // Re-throw our custom empty PDF error
+    } else {
+      throw new Error(`Failed to extract text from PDF: ${error.message}`);
+    }
   } finally {
     // Cleanup temporary files
     try {
       await unlink(tempPath);
       await unlink(outputPath);
+      console.log('[PDF] Cleaned up temporary files');
     } catch (e) {
-      // Ignore cleanup errors
+      console.warn('[PDF] Failed to cleanup temporary files:', e);
     }
   }
 }
