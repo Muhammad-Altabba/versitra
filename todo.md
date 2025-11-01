@@ -39,7 +39,7 @@
 ## Known Bugs
 
 - [x] GitHub repository not being deleted when project is deleted (FIXED)
-- [x] PDF text extraction failing - improved error handling and logging (FIXED)
+- [x] PDF text extraction failing in deployed environment - switched to JavaScript-based pdf-parse (FIXED)
 
 ## Technical Debt
 

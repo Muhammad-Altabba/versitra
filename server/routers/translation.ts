@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { protectedProcedure, router } from '../_core/trpc';
 import { splitDocument, generateTranslationDraft, batchGenerateDrafts } from '../translation/service';
-import { extractTextFromPDF, convertPDFTextToMarkdown } from '../translation/pdfExtractor';
+import { extractTextFromPDF, convertPDFTextToMarkdown } from '../translation/pdfExtractorJS';
 import { updateBookSections, getBook } from '../db';
 import { TRPCError } from '@trpc/server';
 
