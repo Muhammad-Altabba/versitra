@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { protectedProcedure, router } from '../_core/trpc';
 import { splitDocument, generateTranslationDraft, batchGenerateDrafts } from '../translation/service';
 import { extractTextFromPDF, convertPDFTextToMarkdown } from '../translation/pdfExtractorJS';
-import { updateBookSections, getBook } from '../db';
+import { updateBookSections, getBook, updateBookOriginalText } from '../db';
 import { TRPCError } from '@trpc/server';
 
 /**
@@ -15,12 +15,13 @@ export const translationRouter = router({
   uploadPDF: protectedProcedure
     .input(
       z.object({
+        bookId: z.string().optional(), // Optional: if provided, save to this book
         base64Data: z.string(),
         sourceLanguage: z.string(),
         targetLanguage: z.string(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       // Decode base64 PDF data
       const buffer = Buffer.from(input.base64Data, 'base64');
       
@@ -37,7 +38,17 @@ export const translationRouter = router({
         input.targetLanguage
       );
       
+      // Save to database if bookId is provided
+      if (input.bookId) {
+        const book = await getBook(input.bookId);
+        if (book && book.userId === ctx.user.id) {
+          await updateBookOriginalText(input.bookId, text, markdown);
+          await updateBookSections(input.bookId, sections);
+        }
+      }
+      
       return {
+        originalText: text,
         markdown,
         sections,
       };
@@ -68,7 +79,8 @@ export const translationRouter = router({
       // Split document into sections
       const sections = await splitDocument(input.content, input.sourceLanguage, input.targetLanguage);
       
-      // Save sections to database for caching
+      // Save original content and sections to database
+      await updateBookOriginalText(input.bookId, input.content, input.content);
       await updateBookSections(input.bookId, sections);
       
       return sections;

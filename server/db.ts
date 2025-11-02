@@ -394,3 +394,26 @@ export async function clearAllDrafts(bookId: string) {
     .where(eq(books.id, bookId));
 }
 
+
+
+export async function updateBookOriginalText(
+  id: string,
+  originalText: string,
+  parsedMarkdown: string
+) {
+  const db = await getDb();
+  if (!db) {
+    console.warn('[Database] Cannot update book original text: database not available');
+    return;
+  }
+
+  await db
+    .update(books)
+    .set({ 
+      originalText,
+      parsedMarkdown,
+      lastModified: new Date() 
+    })
+    .where(eq(books.id, id));
+}
+
