@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc";
 import { APP_TITLE } from "@/const";
-import { BookOpen, Plus, LogOut, Github, GitlabIcon as Gitlab, Loader2, GitBranch, Trash2 } from "lucide-react";
+import { BookOpen, Plus, LogOut, Github, GitlabIcon as Gitlab, Loader2, GitBranch, Trash2, Settings } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
@@ -157,6 +157,12 @@ export default function Dashboard() {
                     Connect GitLab
                   </Button>
                 </div>
+              )}
+              {user?.role === 'admin' && (
+                <Button variant="ghost" size="sm" onClick={() => setLocation('/admin')}>
+                  <Settings className="h-4 w-4 mr-2" />
+                  Admin
+                </Button>
               )}
               <Button variant="ghost" size="sm" onClick={logout}>
                 <LogOut className="h-4 w-4 mr-2" />

@@ -23,6 +23,8 @@
 
 ## Pending Features
 
+- [x] Add comprehensive logging throughout the project for debugging
+- [x] Add database exploration tool for admin (minimal code)
 - [x] Save parsed PDF text to database for future reference
 - [ ] Frontend UI for draft system (save draft button, draft indicator)
 - [ ] Frontend UI for version commit (commit version button, commit dialog)
@@ -41,6 +43,7 @@
 
 - [x] GitHub repository not being deleted when project is deleted (FIXED)
 - [x] PDF text extraction failing in deployed environment - switched to JavaScript-based pdf-parse (FIXED)
+- [x] Parsed book sections not loading after browser refresh - data persistence issue (FIXED - showSectionsList not set to true)
 
 ## Technical Debt
 
@@ -62,6 +65,7 @@
 - [x] FIXES_APPLIED.md - Bug fixes documentation
 - [x] ALL_FIXES_SUMMARY.md - Summary of all fixes
 - [x] PERFORMANCE_OPTIMIZATION.md - Performance improvements
+- [x] SECTION_VISIBILITY_FIX.md - Section visibility bug fix and logging documentation
 - [ ] API documentation
 - [ ] User guide
 - [ ] Developer setup guide

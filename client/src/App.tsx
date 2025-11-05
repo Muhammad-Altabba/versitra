@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import BookEditor from "./pages/BookEditor";
 import DiffViewer from "./pages/DiffViewer";
+import Admin from "./pages/Admin";
 
 function Router() {
   return (
@@ -16,6 +17,7 @@ function Router() {
       <Route path={"/dashboard"} component={Dashboard} />
       <Route path={"/book/:bookId"} component={BookEditor} />
       <Route path={"/diff/:bookId"} component={DiffViewer} />
+      <Route path={"/admin"} component={Admin} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

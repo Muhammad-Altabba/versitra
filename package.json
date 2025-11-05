@@ -13,7 +13,8 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
-    "db:push": "drizzle-kit generate && drizzle-kit migrate"
+    "db:push": "drizzle-kit generate && drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio --port 4983"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.693.0",

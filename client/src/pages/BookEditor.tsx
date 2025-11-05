@@ -91,12 +91,20 @@ export default function BookEditor() {
   // Load sections from cache on mount
   useEffect(() => {
     if (cachedData) {
+      console.log('[BookEditor] Cached data loaded:', {
+        hasSections: !!cachedData.sections,
+        sectionsCount: cachedData.sections?.length || 0,
+        hasMetadata: !!cachedData.sectionsMetadata,
+      });
+      
       if (cachedData.sections && cachedData.sections.length > 0) {
         // Sections exist in cache - load them
         console.log('[BookEditor] Loading cached sections:', cachedData.sections.length);
         setSections(cachedData.sections);
-        // Keep showing sections list so user can see all sections
-        // Don't auto-hide it like before (that was the bug)
+        setShowSectionsList(true); // FIX: Show the sections list!
+        console.log('[BookEditor] Sections list visibility set to true');
+      } else {
+        console.log('[BookEditor] No cached sections found');
       }
       setIsLoadingProgress(false);
     }
@@ -104,7 +112,17 @@ export default function BookEditor() {
 
   // Helper function to split document
   const handleSplitDocument = async (content: string) => {
-    if (!book || !bookId) return;
+    if (!book || !bookId) {
+      console.warn('[BookEditor] Cannot split document: missing book or bookId');
+      return;
+    }
+    
+    console.log('[BookEditor] Starting document split:', {
+      bookId,
+      contentLength: content.length,
+      sourceLanguage: book.sourceLanguage,
+      targetLanguage: book.targetLanguage,
+    });
     
     try {
       const result = await splitDocumentMutation.mutateAsync({
@@ -114,10 +132,18 @@ export default function BookEditor() {
         targetLanguage: book.targetLanguage || "es",
       });
 
+      console.log('[BookEditor] Document split successful:', {
+        sectionsCount: result.length,
+        sectionIds: result.map((s: any) => s.id),
+      });
+      
       setSections(result);
       setCurrentSectionIndex(0);
+      setShowSectionsList(true);
+      console.log('[BookEditor] Sections state updated and list shown');
     } catch (error) {
-      console.error('Failed to split document:', error);
+      console.error('[BookEditor] Failed to split document:', error);
+      toast.error('Failed to split document');
     }
   };
 

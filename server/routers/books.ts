@@ -205,9 +205,11 @@ export const booksRouter = router({
   getSections: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
+      console.log(`[Books.getSections] Request for book: ${input.id}`);
       const book = await getBook(input.id);
 
       if (!book) {
+        console.log(`[Books.getSections] Book not found: ${input.id}`);
         throw new TRPCError({
           code: 'NOT_FOUND',
           message: 'Book not found',
@@ -216,11 +218,21 @@ export const booksRouter = router({
 
       // Verify ownership
       if (book.userId !== ctx.user.id) {
+        console.log(`[Books.getSections] Access denied for user ${ctx.user.id} to book ${input.id}`);
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: 'Access denied',
         });
       }
+
+      const sectionsCount = book.sections?.length || 0;
+      const hasMetadata = !!book.sectionsMetadata;
+      console.log(`[Books.getSections] Returning data:`, {
+        bookId: input.id,
+        sectionsCount,
+        hasMetadata,
+        metadataKeys: hasMetadata ? Object.keys(book.sectionsMetadata || {}).length : 0,
+      });
 
       return {
         sections: book.sections || [],

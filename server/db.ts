@@ -195,6 +195,7 @@ export async function getUserBooks(userId: string) {
 }
 
 export async function getBook(id: string) {
+  console.log(`[Database.getBook] Fetching book: ${id}`);
   const db = await getDb();
   if (!db) {
     console.warn('[Database] Cannot get book: database not available');
@@ -202,7 +203,21 @@ export async function getBook(id: string) {
   }
 
   const result = await db.select().from(books).where(eq(books.id, id)).limit(1);
-  return result.length > 0 ? result[0] : undefined;
+  const book = result.length > 0 ? result[0] : undefined;
+  
+  if (book) {
+    console.log(`[Database.getBook] Book found:`, {
+      id: book.id,
+      title: book.title,
+      hasSections: !!book.sections,
+      sectionsCount: book.sections?.length || 0,
+      hasMetadata: !!book.sectionsMetadata,
+    });
+  } else {
+    console.log(`[Database.getBook] Book not found: ${id}`);
+  }
+  
+  return book;
 }
 
 export async function updateBookLastModified(id: string) {
