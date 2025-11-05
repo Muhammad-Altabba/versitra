@@ -22,14 +22,29 @@ export const translationRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      console.log('[Translation.uploadPDF] Starting PDF upload:', {
+        hasBookId: !!input.bookId,
+        bookId: input.bookId,
+        userId: ctx.user.id,
+        pdfSize: input.base64Data.length,
+      });
+      
       // Decode base64 PDF data
       const buffer = Buffer.from(input.base64Data, 'base64');
+      console.log('[Translation.uploadPDF] PDF decoded, buffer size:', buffer.length);
       
       // Extract text from PDF
       const text = await extractTextFromPDF(buffer);
+      console.log('[Translation.uploadPDF] Text extracted:', {
+        textLength: text.length,
+        preview: text.substring(0, 100),
+      });
       
       // Convert to Markdown
       const markdown = convertPDFTextToMarkdown(text);
+      console.log('[Translation.uploadPDF] Converted to Markdown:', {
+        markdownLength: markdown.length,
+      });
       
       // Split into sections
       const sections = await splitDocument(
@@ -37,14 +52,26 @@ export const translationRouter = router({
         input.sourceLanguage,
         input.targetLanguage
       );
+      console.log('[Translation.uploadPDF] Document split into sections:', sections.length);
       
       // Save to database if bookId is provided
       if (input.bookId) {
+        console.log('[Translation.uploadPDF] Saving to database for book:', input.bookId);
         const book = await getBook(input.bookId);
-        if (book && book.userId === ctx.user.id) {
+        
+        if (!book) {
+          console.error('[Translation.uploadPDF] Book not found:', input.bookId);
+        } else if (book.userId !== ctx.user.id) {
+          console.error('[Translation.uploadPDF] Access denied: user', ctx.user.id, 'does not own book', input.bookId);
+        } else {
+          console.log('[Translation.uploadPDF] Saving original text and markdown...');
           await updateBookOriginalText(input.bookId, text, markdown);
+          console.log('[Translation.uploadPDF] Saving sections...');
           await updateBookSections(input.bookId, sections);
+          console.log('[Translation.uploadPDF] ✅ All data saved to database');
         }
+      } else {
+        console.warn('[Translation.uploadPDF] No bookId provided - data will NOT be saved to database');
       }
       
       return {

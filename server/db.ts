@@ -248,6 +248,12 @@ export async function updateBookSections(
   id: string,
   sections: Array<{ id: string; content: string; startLine: number; endLine: number }>
 ) {
+  console.log('[Database.updateBookSections] Updating sections for book:', {
+    bookId: id,
+    sectionsCount: sections.length,
+    sectionIds: sections.map(s => s.id).slice(0, 5),
+  });
+  
   const db = await getDb();
   if (!db) {
     console.warn('[Database] Cannot update book sections: database not available');
@@ -261,6 +267,8 @@ export async function updateBookSections(
       lastModified: new Date() 
     })
     .where(eq(books.id, id));
+    
+  console.log('[Database.updateBookSections] ✅ Sections saved successfully');
 }
 
 export async function updateSectionMetadata(
@@ -416,6 +424,12 @@ export async function updateBookOriginalText(
   originalText: string,
   parsedMarkdown: string
 ) {
+  console.log('[Database.updateBookOriginalText] Updating original text for book:', {
+    bookId: id,
+    originalTextLength: originalText.length,
+    parsedMarkdownLength: parsedMarkdown.length,
+  });
+  
   const db = await getDb();
   if (!db) {
     console.warn('[Database] Cannot update book original text: database not available');
@@ -430,5 +444,7 @@ export async function updateBookOriginalText(
       lastModified: new Date() 
     })
     .where(eq(books.id, id));
+    
+  console.log('[Database.updateBookOriginalText] ✅ Original text and markdown saved successfully');
 }
 

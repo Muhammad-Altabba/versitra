@@ -71,3 +71,9 @@
 - [ ] Developer setup guide
 - [ ] Deployment guide
 
+
+
+## New Issues
+
+- [x] PDF processing not saving data to database (original text, parsed text, sections) - FIXED
+

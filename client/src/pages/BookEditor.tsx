@@ -216,16 +216,29 @@ export default function BookEditor() {
         const base64Data = e.target?.result as string;
         const base64 = base64Data.split(',')[1];
 
+        console.log('[BookEditor] Uploading PDF with bookId:', bookId);
         const result = await uploadPDFMutation.mutateAsync({
+          bookId: bookId,
           base64Data: base64,
           sourceLanguage: book.sourceLanguage || "en",
           targetLanguage: book.targetLanguage || "es",
+        });
+        console.log('[BookEditor] PDF processed and saved:', {
+          sectionsCount: result.sections.length,
+          hasOriginalText: !!result.originalText,
+          hasMarkdown: !!result.markdown,
         });
 
         setSourceContent(result.markdown);
         setSections(result.sections);
         setCurrentSectionIndex(0);
-        toast.success(`PDF processed! Found ${result.sections.length} sections`);
+        setShowSectionsList(true);
+        
+        // Refresh cached data from database
+        await utils.books.getSections.invalidate({ id: bookId });
+        
+        toast.success(`PDF processed and saved! Found ${result.sections.length} sections`);
+        console.log('[BookEditor] Sections list shown and cache invalidated');
       };
       reader.readAsDataURL(pdfFile);
     } catch (error) {
