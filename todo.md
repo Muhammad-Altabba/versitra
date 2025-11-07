@@ -77,3 +77,6 @@
 
 - [x] PDF processing not saving data to database (original text, parsed text, sections) - FIXED
 
+
+- [x] Database TEXT field size limitation - need LONGTEXT for large PDFs (FIXED - changed to LONGTEXT)
+

@@ -1,4 +1,4 @@
-import { mysqlEnum, mysqlTable, text, timestamp, varchar, json } from "drizzle-orm/mysql-core";
+import { mysqlEnum, mysqlTable, text, longtext, timestamp, varchar, json } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -31,8 +31,8 @@ export const books = mysqlTable("books", {
   title: text("title"),
   sourceLanguage: varchar("sourceLanguage", { length: 10 }),
   targetLanguage: varchar("targetLanguage", { length: 10 }),
-  originalText: text("originalText"), // Original extracted text from PDF or user input
-  parsedMarkdown: text("parsedMarkdown"), // Markdown version of the original text
+  originalText: longtext("originalText"), // Original extracted text from PDF or user input (supports up to 4GB)
+  parsedMarkdown: longtext("parsedMarkdown"), // Markdown version of the original text (supports up to 4GB)
   sections: json("sections").$type<Array<{ id: string; content: string; startLine: number; endLine: number }>>(), // Cached document sections
   sectionsMetadata: json("sectionsMetadata").$type<Record<string, { translated: boolean; lastModified?: string }>>(), // Translation status per section
   drafts: json("drafts").$type<Record<string, { source: string; translated: string; lastModified: string }>>(), // Draft translations not yet committed to Git

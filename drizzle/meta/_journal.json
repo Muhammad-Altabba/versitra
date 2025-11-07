@@ -43,6 +43,13 @@
       "when": 1762061462197,
       "tag": "0005_early_leader",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1762410409735,
+      "tag": "0006_tidy_whirlwind",
+      "breakpoints": true
     }
   ]
 }
