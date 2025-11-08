@@ -80,3 +80,6 @@
 
 - [x] Database TEXT field size limitation - need LONGTEXT for large PDFs (FIXED - changed to LONGTEXT)
 
+
+- [x] DiffViewer page not showing commit history and diffs (commits exist in GitHub) - FIXED
+

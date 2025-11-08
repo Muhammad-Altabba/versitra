@@ -21,23 +21,39 @@ export default function DiffViewer() {
     { enabled: !!bookId && isAuthenticated }
   );
 
+  const { data: gitInfo } = trpc.git.getUserInfo.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
+
+  // Parse owner and repo correctly
+  // If repoName contains "/", it's in "owner/repo" format
+  // Otherwise, use gitInfo.username as owner
+  const owner = book?.repoName.includes("/") 
+    ? book.repoName.split("/")[0] 
+    : gitInfo?.username || "";
+  const repo = book?.repoName.includes("/") 
+    ? book.repoName.split("/")[1] 
+    : book?.repoName || "";
+
+  console.log('[DiffViewer] Repository info:', { owner, repo, repoName: book?.repoName });
+
   const { data: commits, isLoading: commitsLoading } = trpc.git.getCommitHistory.useQuery(
     {
-      owner: book?.repoName.split("/")[0] || "",
-      repo: book?.repoName.split("/")[1] || book?.repoName || "",
+      owner,
+      repo,
       limit: 50,
     },
-    { enabled: !!book }
+    { enabled: !!book && !!owner && !!repo }
   );
 
   const { data: diffData, isLoading: diffLoading } = trpc.git.getDiff.useQuery(
     {
-      owner: book?.repoName.split("/")[0] || "",
-      repo: book?.repoName.split("/")[1] || book?.repoName || "",
+      owner,
+      repo,
       base: baseCommit,
       head: headCommit,
     },
-    { enabled: !!book && !!baseCommit && !!headCommit }
+    { enabled: !!book && !!owner && !!repo && !!baseCommit && !!headCommit }
   );
 
   // Parse diff data into a more readable format

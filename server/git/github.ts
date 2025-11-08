@@ -158,6 +158,8 @@ export class GitHubClient {
    * Get commit history
    */
   async getCommitHistory(owner: string, repo: string, path?: string, limit = 50): Promise<GitHubCommit[]> {
+    console.log(`[GitHub.getCommitHistory] Fetching commits for ${owner}/${repo}`, { path, limit });
+    
     try {
       const { data } = await this.octokit.repos.listCommits({
         owner,
@@ -165,6 +167,15 @@ export class GitHubClient {
         path,
         per_page: limit,
       });
+
+      console.log(`[GitHub.getCommitHistory] ✅ Found ${data.length} commits for ${owner}/${repo}`);
+      if (data.length > 0) {
+        console.log(`[GitHub.getCommitHistory] Latest commit:`, {
+          sha: data[0].sha.substring(0, 7),
+          message: data[0].commit.message.substring(0, 50),
+          author: data[0].commit.author?.name,
+        });
+      }
 
       return data.map(commit => ({
         sha: commit.sha,
@@ -176,9 +187,10 @@ export class GitHubClient {
     } catch (error: any) {
       // Repository might be empty or not exist yet
       if (error.status === 404 || error.status === 409) {
-        console.log(`[GitHub] No commits found for ${owner}/${repo}`);
+        console.log(`[GitHub.getCommitHistory] ⚠️ No commits found for ${owner}/${repo} (status: ${error.status})`);
         return [];
       }
+      console.error(`[GitHub.getCommitHistory] ❌ Error fetching commits for ${owner}/${repo}:`, error.message);
       throw error;
     }
   }

@@ -131,6 +131,13 @@ export const gitRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
+      console.log('[Git.getCommitHistory] Request:', {
+        owner: input.owner,
+        repo: input.repo,
+        path: input.path,
+        limit: input.limit,
+      });
+      
       const { client } = await getGitClient(ctx.user.id);
 
       const commits = await (client as any).getCommitHistory(
@@ -139,6 +146,16 @@ export const gitRouter = router({
         input.path,
         input.limit
       );
+      
+      console.log('[Git.getCommitHistory] Found commits:', commits.length);
+      if (commits.length > 0) {
+        console.log('[Git.getCommitHistory] Latest commit:', {
+          sha: commits[0].sha.substring(0, 7),
+          message: commits[0].message.substring(0, 50),
+          author: commits[0].author,
+        });
+      }
+      
       return commits;
     }),
 
