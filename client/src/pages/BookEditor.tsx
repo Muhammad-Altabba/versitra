@@ -2,6 +2,9 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc";
 import { APP_TITLE } from "@/const";
 import {
@@ -15,6 +18,7 @@ import {
   FileText,
   GitBranch,
   Eye,
+  GitCommit,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
@@ -206,6 +210,12 @@ export default function BookEditor() {
   const commitFileMutation = trpc.git.commitFile.useMutation();
   const exportPDFMutation = trpc.export.bookToPDF.useMutation();
   const updateMetadataMutation = trpc.books.updateSectionMetadata.useMutation();
+  const saveDraftMutation = trpc.books.saveDraft.useMutation();
+  const commitVersionMutation = trpc.books.commitVersion.useMutation();
+  const { data: allDrafts } = trpc.books.getAllDrafts.useQuery(
+    { bookId: bookId || "" },
+    { enabled: !!bookId }
+  );
 
   const handleProcessPDF = async () => {
     if (!pdfFile || !book) return;
@@ -277,32 +287,52 @@ export default function BookEditor() {
     }
   };
 
+  const [isVersionDialogOpen, setIsVersionDialogOpen] = useState(false);
+  const [versionTitle, setVersionTitle] = useState("");
+
+  const handleCreateVersion = async () => {
+    if (!versionTitle.trim()) {
+      toast.error("Please enter a version title");
+      return;
+    }
+
+    try {
+      console.log('[BookEditor] Creating version:', versionTitle);
+      
+      const result = await commitVersionMutation.mutateAsync({
+        bookId: bookId || "",
+        message: versionTitle,
+      });
+
+      toast.success(`Version created! Committed ${result.committedCount} sections`);
+      setIsVersionDialogOpen(false);
+      setVersionTitle("");
+      
+      // Refresh drafts list (should be empty now)
+      await utils.books.getAllDrafts.invalidate({ bookId: bookId || "" });
+      
+      console.log('[BookEditor] Version created successfully');
+    } catch (error: any) {
+      toast.error(error.message || "Failed to create version");
+      console.error('[BookEditor] Failed to create version:', error);
+    }
+  };
+
   const handleSaveTranslation = async () => {
-    if (!translatedContent || !book || !gitInfo) return;
+    if (!translatedContent || !book) return;
 
     try {
       const section = sections[currentSectionIndex];
       const sectionId = section?.id || "section";
-      const repoName = book.repoName.split("/").pop() || book.repoName;
 
-      // Save source content first
-      const sourcePath = `source/${sectionId}.md`;
-      await commitFileMutation.mutateAsync({
-        owner: gitInfo.username,
-        repo: repoName,
-        path: sourcePath,
-        content: section?.content || '',
-        message: `source/${sectionId}`,
-      });
-
-      // Save translation
-      const translatedPath = `translated/${sectionId}.md`;
-      await commitFileMutation.mutateAsync({
-        owner: gitInfo.username,
-        repo: repoName,
-        path: translatedPath,
-        content: translatedContent,
-        message: `translate/${sectionId}`,
+      console.log('[BookEditor] Saving draft for section:', sectionId);
+      
+      // Save as draft to local DB (no Git commit)
+      await saveDraftMutation.mutateAsync({
+        bookId: bookId || "",
+        sectionId,
+        source: section?.content || '',
+        translated: translatedContent,
       });
 
       // Update local progress
@@ -311,16 +341,12 @@ export default function BookEditor() {
         [section?.id || 'section']: translatedContent,
       }));
 
-      // Update metadata in database (for fast loading next time)
-      if (bookId) {
-        await updateMetadataMutation.mutateAsync({
-          id: bookId,
-          sectionId,
-          translated: true,
-        });
-      }
+      // Refresh drafts list
+      await utils.books.getAllDrafts.invalidate({ bookId: bookId || "" });
 
-      toast.success("Translation saved to Git");
+      console.log('[BookEditor] Draft saved successfully');
+
+      toast.success("Draft saved locally");
 
       // Move to next section
       if (currentSectionIndex < sections.length - 1) {
@@ -400,6 +426,21 @@ export default function BookEditor() {
               >
                 <Eye className="h-4 w-4 mr-2" />
                 View Diffs
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => setIsVersionDialogOpen(true)}
+                disabled={!allDrafts || Object.keys(allDrafts).length === 0}
+                className="relative"
+              >
+                <GitCommit className="h-4 w-4 mr-2" />
+                Create Version
+                {allDrafts && Object.keys(allDrafts).length > 0 && (
+                  <span className="ml-2 bg-white text-primary px-2 py-0.5 rounded-full text-xs font-semibold">
+                    {Object.keys(allDrafts).length}
+                  </span>
+                )}
               </Button>
               <Button
                 variant="outline"
@@ -634,14 +675,14 @@ export default function BookEditor() {
                     <Button
                       size="sm"
                       onClick={handleSaveTranslation}
-                      disabled={!translatedContent || commitFileMutation.isPending}
+                      disabled={!translatedContent || saveDraftMutation.isPending}
                     >
-                      {commitFileMutation.isPending ? (
+                      {saveDraftMutation.isPending ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       ) : (
                         <Save className="h-4 w-4 mr-2" />
                       )}
-                      Save & Next
+                      Save Draft & Next
                     </Button>
                   </div>
                 </CardHeader>
@@ -687,6 +728,74 @@ export default function BookEditor() {
           </div>
         )}
       </main>
+
+      {/* Create Version Dialog */}
+      <Dialog open={isVersionDialogOpen} onOpenChange={setIsVersionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Version</DialogTitle>
+            <DialogDescription>
+              Commit all {allDrafts ? Object.keys(allDrafts).length : 0} draft sections to Git as a new version.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="version-title">Version Title</Label>
+              <Input
+                id="version-title"
+                placeholder="e.g., Initial translation, Chapter 1 complete, Final review"
+                value={versionTitle}
+                onChange={(e) => setVersionTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && versionTitle.trim()) {
+                    handleCreateVersion();
+                  }
+                }}
+              />
+            </div>
+            {allDrafts && (
+              <div className="text-sm text-muted-foreground">
+                <p className="font-medium mb-2">Sections to commit:</p>
+                <div className="max-h-40 overflow-y-auto space-y-1">
+                  {Object.entries(allDrafts).map(([sectionId]) => (
+                    <div key={sectionId} className="flex items-center gap-2">
+                      <GitCommit className="h-3 w-3" />
+                      <span>{sectionId}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsVersionDialogOpen(false);
+                setVersionTitle("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreateVersion}
+              disabled={!versionTitle.trim() || commitVersionMutation.isPending}
+            >
+              {commitVersionMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <GitCommit className="h-4 w-4 mr-2" />
+                  Create Version
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

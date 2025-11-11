@@ -83,3 +83,13 @@
 
 - [x] DiffViewer page not showing commit history and diffs (commits exist in GitHub) - FIXED
 
+
+
+## New Features - Draft System
+
+- [x] Save edits as drafts in local DB without Git commits
+- [x] Add "Create Version" button to commit drafts to Git with version title
+- [x] Enable comparing uncommitted drafts with Git versions in DiffViewer
+- [x] Update database schema to track draft status per section (already existed)
+- [x] Add version creation UI with title input
+
