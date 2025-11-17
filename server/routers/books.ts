@@ -413,17 +413,35 @@ export const booksRouter = router({
       }
 
       // Get Git client
-      const { client } = await getGitClient(ctx.user.id);
+      const { client, username } = await getGitClient(ctx.user.id);
+
+      console.log('[Books.commitVersion] Committing drafts:', {
+        bookId: input.bookId,
+        repoName: book.repoName,
+        username,
+        draftCount: draftEntries.length,
+        message: input.message,
+      });
+
+      // Parse owner and repo correctly (same logic as DiffViewer)
+      const owner = book.repoName.includes('/') 
+        ? book.repoName.split('/')[0] 
+        : username;
+      const repo = book.repoName.includes('/') 
+        ? book.repoName.split('/')[1] 
+        : book.repoName;
+
+      console.log('[Books.commitVersion] Parsed repository info:', { owner, repo });
 
       // Commit each draft to Git
       const commitPromises = draftEntries.map(async ([sectionId, draft]) => {
         if (book.gitProvider === 'github') {
-          const [owner, repo] = book.repoName.split('/');
+          console.log(`[Books.commitVersion] Committing section ${sectionId} to ${owner}/${repo}`);
           
           // Commit source
           await (client as any).commitFile(
-            owner || ctx.user.id.replace('github:', ''),
-            repo || book.repoName,
+            owner,
+            repo,
             `source/${sectionId}.md`,
             draft.source,
             input.message,
@@ -432,8 +450,8 @@ export const booksRouter = router({
           
           // Commit translation
           await (client as any).commitFile(
-            owner || ctx.user.id.replace('github:', ''),
-            repo || book.repoName,
+            owner,
+            repo,
             `translated/${sectionId}.md`,
             draft.translated,
             input.message,
@@ -467,12 +485,27 @@ export const booksRouter = router({
       });
 
       // Wait for all commits
-      await Promise.all(commitPromises);
+      try {
+        await Promise.all(commitPromises);
+        console.log(`[Books.commitVersion] Successfully committed all ${draftEntries.length} sections`);
+      } catch (error: any) {
+        console.error('[Books.commitVersion] Error committing sections:', {
+          error: error.message,
+          status: error.status,
+          owner,
+          repo,
+          draftCount: draftEntries.length,
+        });
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to commit to Git: ${error.message}. Please check that the repository exists and you have access.`,
+        });
+      }
 
       // Clear all drafts after successful commit
       await clearAllDrafts(input.bookId);
 
-      console.log(`[Books] Committed ${draftEntries.length} drafts for book ${input.bookId}`);
+      console.log(`[Books.commitVersion] Committed ${draftEntries.length} drafts for book ${input.bookId}`);
       return { 
         success: true, 
         committedCount: draftEntries.length 

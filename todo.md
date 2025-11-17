@@ -93,3 +93,9 @@
 - [x] Update database schema to track draft status per section (already existed)
 - [x] Add version creation UI with title input
 
+
+
+## Bugs
+
+- [x] GitHub API 404 error when creating version (commitVersion mutation) - FIXED
+
