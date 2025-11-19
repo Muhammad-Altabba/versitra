@@ -130,6 +130,13 @@ export class GitHubClient {
     branch = 'main',
     sha?: string
   ): Promise<void> {
+    console.log(`[GitHub.commitFile] Committing file to ${owner}/${repo}`, {
+      path,
+      branch,
+      contentSize: content.length,
+      hasSha: !!sha,
+    });
+
     // If SHA not provided, try to get existing file SHA
     let fileSha = sha;
     if (!fileSha) {
@@ -137,21 +144,37 @@ export class GitHubClient {
         const existing = await this.getFile(owner, repo, path, branch);
         if (existing) {
           fileSha = existing.sha;
+          console.log(`[GitHub.commitFile] Found existing file SHA: ${fileSha.substring(0, 7)}`);
         }
       } catch (e) {
         // File doesn't exist, that's fine for new files
+        console.log(`[GitHub.commitFile] File does not exist yet (new file): ${path}`);
       }
     }
 
-    await this.octokit.repos.createOrUpdateFileContents({
-      owner,
-      repo,
-      path,
-      message,
-      content: Buffer.from(content, 'utf-8').toString('base64'),
-      branch,
-      sha: fileSha, // Required for updates
-    });
+    try {
+      await this.octokit.repos.createOrUpdateFileContents({
+        owner,
+        repo,
+        path,
+        message,
+        content: Buffer.from(content, 'utf-8').toString('base64'),
+        branch,
+        sha: fileSha, // Required for updates
+      });
+      console.log(`[GitHub.commitFile] ✅ Successfully committed ${path} to ${owner}/${repo}`);
+    } catch (error: any) {
+      console.error(`[GitHub.commitFile] ❌ Error committing file:`, {
+        owner,
+        repo,
+        path,
+        branch,
+        status: error.status,
+        message: error.message,
+        response: error.response?.data?.message,
+      });
+      throw error;
+    }
   }
 
   /**

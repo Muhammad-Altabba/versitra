@@ -98,4 +98,7 @@
 ## Bugs
 
 - [x] GitHub API 404 error when creating version (commitVersion mutation) - FIXED
+  * Root cause: Incorrect owner/repo parsing using user ID instead of username
+  * Solution: Use username from getGitClient and apply proper parsing logic
+  * Enhanced logging in commitFile method for better debugging
 
