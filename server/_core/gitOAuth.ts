@@ -74,6 +74,10 @@ router.get('/oauth/github/callback', async (req, res) => {
     const env = detectEnvironment(baseUrl);
     const credentials = getOAuthCredentials(env);
     
+    console.log('[GitHub OAuth] Exchanging code for token...');
+    console.log('[GitHub OAuth] Client ID set:', !!credentials.github.clientId);
+    console.log('[GitHub OAuth] Client Secret set:', !!credentials.github.clientSecret);
+    
     const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
       headers: {
@@ -88,9 +92,14 @@ router.get('/oauth/github/callback', async (req, res) => {
     });
 
     const tokenData = await tokenResponse.json();
+    
+    console.log('[GitHub OAuth] Token response status:', tokenResponse.status);
+    console.log('[GitHub OAuth] Token response error:', tokenData.error);
+    console.log('[GitHub OAuth] Token response error_description:', tokenData.error_description);
 
     if (!tokenData.access_token) {
-      throw new Error('Failed to obtain access token');
+      const errorMsg = tokenData.error_description || tokenData.error || 'Unknown error';
+      throw new Error(`Failed to obtain access token: ${errorMsg}`);
     }
 
     const accessToken = tokenData.access_token;

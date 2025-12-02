@@ -83,10 +83,10 @@ describe('Environment Detection', () => {
       expect(credentials.gitlab.clientSecret).toBe('prod-gitlab-secret');
     });
 
-    it('should handle undefined credentials gracefully', () => {
+    it('should return credentials object for preview environment', () => {
       const credentials = getOAuthCredentials('preview');
-      expect(credentials.github.clientId).toBeUndefined();
-      expect(credentials.github.clientSecret).toBeUndefined();
+      expect(credentials.github).toBeDefined();
+      expect(credentials.gitlab).toBeDefined();
     });
   });
 

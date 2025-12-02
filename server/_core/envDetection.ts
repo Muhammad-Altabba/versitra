@@ -56,7 +56,10 @@ export function getOAuthCredentials(env: Environment) {
 
 /**
  * Get environment-specific PUBLIC_URL
+ * Ensures the URL doesn't end with a slash to prevent double slashes
  */
 export function getPublicUrl(): string {
-  return process.env.PUBLIC_URL || `http://localhost:${process.env.PORT || 3000}`;
+  const url = process.env.PUBLIC_URL || `http://localhost:${process.env.PORT || 3000}`;
+  // Remove trailing slash to prevent double slashes in redirect URI
+  return url.endsWith('/') ? url.slice(0, -1) : url;
 }
