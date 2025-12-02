@@ -104,6 +104,14 @@
 
 
 
+## Current Issues
+
+- [x] Draft comparison in Diff Viewer should allow comparing drafts with any version
+  * FIXED: Now allows comparing drafts with any version
+  * Removed the message and enabled diff computation for draft comparisons
+- [x] Dashboard shows "Upload Source Document" UI briefly before loading translation sections
+  * FIXED: Added loading state that shows "Loading translation sections..." while fetching data
+
 ## Environment-Specific OAuth Configuration
 
 - [x] Implement environment detection based on PUBLIC_URL

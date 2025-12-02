@@ -452,7 +452,16 @@ export default function BookEditor() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        {showSectionsList && sections.length > 0 ? (
+        {isLoadingSections ? (
+          <Card>
+            <CardContent className="flex items-center justify-center py-16">
+              <div className="text-center">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground">Loading translation sections...</p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : showSectionsList && sections.length > 0 ? (
           <div className="space-y-6">
             <Card>
               <CardHeader>

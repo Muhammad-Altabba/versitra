@@ -59,10 +59,10 @@ export default function DiffViewer() {
     {
       owner,
       repo,
-      base: baseCommit,
-      head: headCommit,
+      base: baseCommit === "DRAFT" ? "HEAD" : baseCommit,
+      head: headCommit === "DRAFT" ? "HEAD" : headCommit,
     },
-    { enabled: !!book && !!owner && !!repo && !!baseCommit && !!headCommit && !isDraftComparison }
+    { enabled: !!book && !!owner && !!repo && !!baseCommit && !!headCommit }
   );
 
   // Parse diff data into a more readable format
@@ -257,30 +257,6 @@ export default function DiffViewer() {
                   <div className="text-center py-16">
                     <Loader2 className="h-12 w-12 animate-spin mx-auto text-muted-foreground mb-4" />
                     <p className="text-muted-foreground">Loading diff...</p>
-                  </div>
-                ) : isDraftComparison ? (
-                  <div className="text-center py-16">
-                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-6 max-w-md mx-auto">
-                      <FileText className="h-12 w-12 mx-auto mb-4 text-orange-600" />
-                      <h3 className="text-lg font-semibold text-orange-900 mb-2">Draft Comparison</h3>
-                      <p className="text-sm text-orange-800 mb-4">
-                        You've selected DRAFT (uncommitted changes) for comparison.
-                      </p>
-                      <div className="text-left text-sm text-orange-800 space-y-2">
-                        <p className="font-medium">To view draft changes:</p>
-                        <ul className="list-disc list-inside space-y-1 ml-2">
-                          <li>Go back to the Book Editor</li>
-                          <li>Review your uncommitted sections</li>
-                          <li>Click "Create Version" to commit drafts to Git</li>
-                          <li>Then return here to compare versions</li>
-                        </ul>
-                      </div>
-                      <div className="mt-4 pt-4 border-t border-orange-200">
-                        <p className="text-xs text-orange-700">
-                          <strong>Drafts available:</strong> {Object.keys(allDrafts || {}).length} sections
-                        </p>
-                      </div>
-                    </div>
                   </div>
                 ) : parsedDiff && parsedDiff.length > 0 ? (
                   <div className="font-mono text-sm overflow-x-auto">
