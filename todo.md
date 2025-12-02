@@ -26,8 +26,8 @@
 - [x] Add comprehensive logging throughout the project for debugging
 - [x] Add database exploration tool for admin (minimal code)
 - [x] Save parsed PDF text to database for future reference
-- [ ] Frontend UI for draft system (save draft button, draft indicator)
-- [ ] Frontend UI for version commit (commit version button, commit dialog)
+- [x] Frontend UI for draft system (save draft button, draft indicator)
+- [x] Frontend UI for version commit (commit version button, commit dialog)
 - [ ] Section-level diff viewer in BookEditor
 - [ ] Auto-save drafts functionality
 - [ ] Draft conflict resolution
