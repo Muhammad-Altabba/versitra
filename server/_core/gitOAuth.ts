@@ -7,6 +7,7 @@ import { upsertUser, upsertGitCredential } from '../db';
 import { sdk } from './sdk';
 import { COOKIE_NAME, ONE_YEAR_MS } from '@shared/const';
 import { getSessionCookieOptions } from './cookies';
+import { detectEnvironment, getOAuthCredentials, getPublicUrl } from './envDetection';
 
 const router = Router();
 
@@ -14,11 +15,14 @@ const router = Router();
  * Debug endpoint to show OAuth configuration
  */
 router.get('/oauth/debug', (req, res) => {
-  const clientId = process.env.GITHUB_CLIENT_ID;
-  const baseUrl = process.env.PUBLIC_URL || `${req.protocol}://${req.get('host')}`;
+  const baseUrl = getPublicUrl();
+  const env = detectEnvironment(baseUrl);
+  const credentials = getOAuthCredentials(env);
+  const clientId = credentials.github.clientId;
   const redirectUri = `${baseUrl}/api/oauth/github/callback`;
   
   res.json({
+    environment: env,
     clientId: clientId ? `${clientId.substring(0, 10)}...` : 'NOT SET',
     baseUrl,
     redirectUri,
@@ -30,12 +34,15 @@ router.get('/oauth/debug', (req, res) => {
  * GitHub OAuth flow
  */
 router.get('/oauth/github', (req, res) => {
-  const clientId = process.env.GITHUB_CLIENT_ID;
-  const baseUrl = process.env.PUBLIC_URL || `${req.protocol}://${req.get('host')}`;
+  const baseUrl = getPublicUrl();
+  const env = detectEnvironment(baseUrl);
+  const credentials = getOAuthCredentials(env);
+  const clientId = credentials.github.clientId;
   const redirectUri = `${baseUrl}/api/oauth/github/callback`;
   const scope = 'repo user:email';
   const state = nanoid();
 
+  console.log('[GitHub OAuth] Environment:', env);
   console.log('[GitHub OAuth] Client ID:', clientId);
   console.log('[GitHub OAuth] Base URL:', baseUrl);
   console.log('[GitHub OAuth] Redirect URI:', redirectUri);
@@ -63,6 +70,10 @@ router.get('/oauth/github/callback', async (req, res) => {
 
   try {
     // Exchange code for access token
+    const baseUrl = getPublicUrl();
+    const env = detectEnvironment(baseUrl);
+    const credentials = getOAuthCredentials(env);
+    
     const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
       headers: {
@@ -70,8 +81,8 @@ router.get('/oauth/github/callback', async (req, res) => {
         Accept: 'application/json',
       },
       body: JSON.stringify({
-        client_id: process.env.GITHUB_CLIENT_ID,
-        client_secret: process.env.GITHUB_CLIENT_SECRET,
+        client_id: credentials.github.clientId,
+        client_secret: credentials.github.clientSecret,
         code,
       }),
     });
@@ -142,11 +153,16 @@ router.get('/oauth/github/callback', async (req, res) => {
  * GitLab OAuth flow
  */
 router.get('/oauth/gitlab', (req, res) => {
-  const clientId = process.env.GITLAB_CLIENT_ID;
-  const baseUrl = process.env.PUBLIC_URL || `${req.protocol}://${req.get('host')}`;
+  const baseUrl = getPublicUrl();
+  const env = detectEnvironment(baseUrl);
+  const credentials = getOAuthCredentials(env);
+  const clientId = credentials.gitlab.clientId;
   const redirectUri = `${baseUrl}/api/oauth/gitlab/callback`;
   const scope = 'api read_user';
   const state = nanoid();
+
+  console.log('[GitLab OAuth] Environment:', env);
+  console.log('[GitLab OAuth] Client ID:', clientId);
 
   // Store state in session for CSRF protection
   req.session = req.session || {};
@@ -169,17 +185,21 @@ router.get('/oauth/gitlab/callback', async (req, res) => {
 
   try {
     // Exchange code for access token
+    const baseUrl = getPublicUrl();
+    const env = detectEnvironment(baseUrl);
+    const credentials = getOAuthCredentials(env);
+    
     const tokenResponse = await fetch('https://gitlab.com/oauth/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        client_id: process.env.GITLAB_CLIENT_ID,
-        client_secret: process.env.GITLAB_CLIENT_SECRET,
+        client_id: credentials.gitlab.clientId,
+        client_secret: credentials.gitlab.clientSecret,
         code,
         grant_type: 'authorization_code',
-        redirect_uri: `${process.env.PUBLIC_URL || `${req.protocol}://${req.get('host')}`}/api/oauth/gitlab/callback`,
+        redirect_uri: `${baseUrl}/api/oauth/gitlab/callback`,
       }),
     });
 

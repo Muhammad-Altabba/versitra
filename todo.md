@@ -102,3 +102,38 @@
   * Solution: Use username from getGitClient and apply proper parsing logic
   * Enhanced logging in commitFile method for better debugging
 
+
+
+## Environment-Specific OAuth Configuration
+
+- [x] Implement environment detection based on PUBLIC_URL
+  * Detects preview: manusvm.computer, localhost, 127.0.0.1
+  * Detects production: all other URLs
+- [x] Create environment detection utility (envDetection.ts)
+- [x] Update OAuth endpoints to use environment-specific credentials
+- [x] Support separate credentials for GitHub and GitLab
+- [x] Add comprehensive unit tests (15 tests, all passing)
+- [x] All tests passing (47 total tests)
+
+### Required Environment Variables
+
+For Preview Environment:
+- `GITHUB_CLIENT_ID_PREVIEW`
+- `GITHUB_CLIENT_SECRET_PREVIEW`
+- `GITLAB_CLIENT_ID_PREVIEW`
+- `GITLAB_CLIENT_SECRET_PREVIEW`
+- `PUBLIC_URL_PREVIEW` (optional, auto-detected)
+
+For Production Environment:
+- `GITHUB_CLIENT_ID_PRODUCTION`
+- `GITHUB_CLIENT_SECRET_PRODUCTION`
+- `GITLAB_CLIENT_ID_PRODUCTION`
+- `GITLAB_CLIENT_SECRET_PRODUCTION`
+- `PUBLIC_URL_PRODUCTION` (optional, auto-detected)
+
+### How to Configure
+
+1. Go to Manus Settings → Secrets
+2. Add all the environment variables above with your OAuth credentials
+3. The app will automatically detect the environment and use the correct credentials
+4. No code changes needed - just add the secrets!
