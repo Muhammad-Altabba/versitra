@@ -44,7 +44,7 @@ export default function BookEditor() {
   const lastSavedRef = useRef<Date | undefined>(undefined);
 
   const { data: book } = trpc.books.get.useQuery(
-    { id: bookId || "" },
+    { bookId: bookId || "" },
     { enabled: !!bookId && isAuthenticated }
   );
 
