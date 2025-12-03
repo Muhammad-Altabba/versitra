@@ -50,31 +50,6 @@ describe('Section Management', () => {
     });
   });
 
-  describe('updateSectionMetadata', () => {
-    it('should update section metadata', async () => {
-      const result = await updateSectionMetadata(
-        'test-book-id',
-        'section-1',
-        {
-          translated: true,
-          lastModified: new Date().toISOString(),
-        }
-      );
-      
-      expect(result).toBeUndefined();
-    });
-
-    it('should handle non-translated status', async () => {
-      const result = await updateSectionMetadata(
-        'test-book-id',
-        'section-1',
-        {
-          translated: false,
-        }
-      );
-      
-      expect(result).toBeUndefined();
-    });
-  });
+  
 });
 

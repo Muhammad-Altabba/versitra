@@ -22,7 +22,7 @@ export function useAutoSaveDraft({
 }: UseAutoSaveDraftOptions) {
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedContentRef = useRef<string>(content);
-  const saveDraftMutation = trpc.books.saveDraft.useMutation();
+  const saveDraftMutation = trpc.books.saveSectionDraft.useMutation();
 
   const saveDraft = useCallback(async () => {
     // Only save if content has changed

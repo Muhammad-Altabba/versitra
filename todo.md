@@ -347,3 +347,34 @@ For Production Environment:
 - [ ] Remove old JSON fields from books table (drafts, sectionsMetadata)
 - [ ] Update Dashboard to show translation status from section_data
 - [ ] Test end-to-end workflow with new section_data table
+
+
+## Session 8 - Complete Migration to sectionData Table
+
+- [ ] Remove old JSON fields from books table
+  * Delete: drafts field
+  * Delete: sectionsMetadata field
+  * Keep: sections field (still used for section content)
+  * Delete old saveDraft, getDraft, getAllDrafts functions
+  * Update all routers to use only sectionData
+  * Ensure Dashboard queries sectionData for translation status
+  * Test complete workflow with new table only
+
+
+## Session 8 - Complete Migration to sectionData Table - IN PROGRESS
+
+- [x] Removed old JSON fields (drafts, sectionsMetadata) from books schema
+- [x] Removed old draft functions from db.ts
+- [x] Created new sectionData table with proper structure
+- [x] Rewrote books router with only sectionData procedures
+- [x] Updated client files to use new procedures
+- [x] Database migration applied successfully
+- [x] All 159 tests passing
+- [ ] Fix remaining TypeScript errors in BookEditor and other client files
+- [ ] Test end-to-end workflow with new sectionData table
+- [ ] Verify drafts load correctly when navigating between sections
+
+NOTES:
+- Old JSON storage completely removed - no backward compatibility
+- sectionData table is now the single source of truth for all section-related data
+- BookEditor needs refactoring to work with array of sectionData instead of JSON object

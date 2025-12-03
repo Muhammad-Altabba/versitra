@@ -25,7 +25,7 @@ export default function DiffViewer() {
     enabled: isAuthenticated,
   });
 
-  const { data: allDrafts } = trpc.books.getAllDrafts.useQuery(
+  const { data: allDrafts } = trpc.books.getAllSectionDrafts.useQuery(
     { bookId: bookId || "" },
     { enabled: !!bookId && isAuthenticated }
   );
