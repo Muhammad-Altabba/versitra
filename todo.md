@@ -209,3 +209,37 @@ For Production Environment:
   * Replaced with real tests from user's test file
   * All 161 tests passing (32 AI feature tests)
   * Exported parseUsageLimit and getCurrentMonth for testing
+
+
+## New Issues to Fix
+
+- [ ] Admin UI has broken TiDB Cloud console link
+- [ ] Usage Limits should be admin-only (not user-configurable)
+- [ ] Save Draft not persisting to database
+- [ ] AI Draft should auto-save after generation
+
+## Latest Fixes (Session 2)
+
+- [x] Admin UI TiDB Cloud link removed
+  * Removed broken external link from Admin panel
+  * Kept "View All Projects" button for navigation
+
+- [x] Usage Limits made admin-only
+  * Added isAdmin prop to AiSettingsPanel
+  * Usage Limits section only visible to admin users
+  * Users can still configure AI API Provider
+
+- [x] Save Draft database persistence fixed
+  * Added proper error handling and logging to saveDraft function
+  * Fixed JSON serialization (removed unnecessary JSON.stringify)
+  * Now properly updates drafts in database
+
+- [x] AI Draft auto-save implemented
+  * Auto-saves AI generated draft immediately after generation
+  * Shows "AI draft auto-saved" success message
+  * Handles save errors gracefully
+
+- [x] All tests passing
+  * 161 tests passing (10 test files)
+  * Zero TypeScript errors
+  * Dev server running without errors

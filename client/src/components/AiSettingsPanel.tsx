@@ -17,10 +17,11 @@ import { trpc } from "@/lib/trpc";
 type AiProvider = "builtin" | "openai" | "claude" | "gemini";
 
 interface AiSettingsPanelProps {
+  isAdmin?: boolean;
   onSave?: () => void;
 }
 
-export default function AiSettingsPanel({ onSave }: AiSettingsPanelProps) {
+export default function AiSettingsPanel({ onSave, isAdmin = false }: AiSettingsPanelProps) {
   const [provider, setProvider] = useState<AiProvider>("builtin");
   const [apiKey, setApiKey] = useState("");
   const [endpoint, setEndpoint] = useState("");
@@ -130,11 +131,12 @@ export default function AiSettingsPanel({ onSave }: AiSettingsPanelProps) {
         </CardContent>
       </Card>
 
-      {/* Usage Limits */}
+      {/* Usage Limits - Admin Only */}
+      {isAdmin && (
       <Card>
         <CardHeader>
           <CardTitle>Usage Limits</CardTitle>
-          <CardDescription>Set monthly limits for AI API usage</CardDescription>
+          <CardDescription>Set monthly limits for AI API usage (Admin only)</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-3">
@@ -189,6 +191,7 @@ export default function AiSettingsPanel({ onSave }: AiSettingsPanelProps) {
           )}
         </CardContent>
       </Card>
+      )}
 
       {/* Messages */}
       {message && (

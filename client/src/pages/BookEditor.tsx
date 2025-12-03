@@ -285,6 +285,35 @@ export default function BookEditor() {
 
       setTranslatedContent(draft.translated);
       toast.success("AI draft generated");
+
+      // Auto-save the AI draft
+      try {
+        const section = sections[currentSectionIndex];
+        const sectionId = section?.id || "section";
+        
+        console.log('[BookEditor] Auto-saving AI draft for section:', sectionId);
+        
+        await saveDraftMutation.mutateAsync({
+          bookId: bookId || "",
+          sectionId,
+          source: section?.content || '',
+          translated: draft.translated,
+        });
+
+        // Refresh drafts list
+        await utils.books.getAllDrafts.invalidate({ bookId: bookId || "" });
+        
+        // Update last saved time
+        const now = new Date();
+        setLastSavedTime(now);
+        lastSavedRef.current = now;
+
+        console.log('[BookEditor] AI draft auto-saved successfully');
+        toast.success("AI draft auto-saved");
+      } catch (saveError) {
+        console.error('[BookEditor] Failed to auto-save AI draft:', saveError);
+        toast.error("AI draft generated but auto-save failed");
+      }
     } catch (error) {
       toast.error("Failed to generate draft");
       console.error(error);

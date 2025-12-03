@@ -128,14 +128,6 @@ export default function Admin() {
               <Button 
                 variant="outline" 
                 className="w-full justify-start"
-                onClick={() => window.open('https://console.tidbcloud.com/', '_blank')}
-              >
-                <ExternalLink className="mr-2 h-4 w-4" />
-                Open TiDB Cloud Console
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
                 onClick={() => setLocation('/')}
               >
                 <Database className="mr-2 h-4 w-4" />

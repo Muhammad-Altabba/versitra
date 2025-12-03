@@ -315,32 +315,49 @@ export async function saveDraft(
 ) {
   const db = await getDb();
   if (!db) {
-    console.warn('[Database] Cannot save draft: database not available');
-    return;
+    console.error('[Database] Cannot save draft: database not available');
+    throw new Error('Database not available');
   }
 
-  // Get current book
-  const book = await getBook(bookId);
-  if (!book) {
-    console.warn('[Database] Book not found');
-    return;
+  try {
+    // Get current book
+    const book = await getBook(bookId);
+    if (!book) {
+      console.error('[Database] Book not found:', bookId);
+      throw new Error('Book not found');
+    }
+
+    // Update drafts
+    const currentDrafts = (book.drafts as Record<string, any>) || {};
+    currentDrafts[sectionId] = {
+      source,
+      translated,
+      lastModified: new Date().toISOString(),
+    };
+
+    console.log('[Database] Saving draft:', {
+      bookId,
+      sectionId,
+      translatedLength: translated.length,
+      draftCount: Object.keys(currentDrafts).length,
+    });
+
+    const result = await db
+      .update(books)
+      .set({ 
+        drafts: currentDrafts,
+        lastModified: new Date() 
+      })
+      .where(eq(books.id, bookId));
+
+    console.log('[Database] Draft saved successfully:', {
+      bookId,
+      sectionId,
+    });
+  } catch (error) {
+    console.error('[Database] Failed to save draft:', error);
+    throw error;
   }
-
-  // Update drafts
-  const currentDrafts = (book.drafts as Record<string, any>) || {};
-  currentDrafts[sectionId] = {
-    source,
-    translated,
-    lastModified: new Date().toISOString(),
-  };
-
-  await db
-    .update(books)
-    .set({ 
-      drafts: currentDrafts,
-      lastModified: new Date() 
-    })
-    .where(eq(books.id, bookId));
 }
 
 /**
