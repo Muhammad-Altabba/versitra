@@ -24,3 +24,12 @@
 - Build: `pnpm build`
 - Deploy: Use Manus Settings → Publish button (requires checkpoint)
 - Environment variables: Configure via Manus Settings → Secrets panel
+
+## Project structure
+
+- `docs/`: Project documentation (architecture, features, deployment guides)
+- `agents-artifacts/`: Agent-generated logs, progress notes, and intermediate artifacts
+- `client/src/`: React frontend with tRPC hooks
+- `server/`: Express backend with tRPC procedures
+- `drizzle/`: Database schema and migrations
+- `tests/`: Unit and integration tests
