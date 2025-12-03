@@ -313,19 +313,23 @@ export async function saveDraft(
   source: string,
   translated: string
 ) {
+  console.log('[saveDraft] Starting save operation:', { bookId, sectionId, translatedLength: translated.length });
+  
   const db = await getDb();
   if (!db) {
-    console.error('[Database] Cannot save draft: database not available');
+    console.error('[saveDraft] Database not available');
     throw new Error('Database not available');
   }
 
   try {
     // Get current book
+    console.log('[saveDraft] Fetching book:', bookId);
     const book = await getBook(bookId);
     if (!book) {
-      console.error('[Database] Book not found:', bookId);
+      console.error('[saveDraft] Book not found:', bookId);
       throw new Error('Book not found');
     }
+    console.log('[saveDraft] Book found, current drafts:', Object.keys(book.drafts || {}).length);
 
     // Update drafts
     const currentDrafts = (book.drafts as Record<string, any>) || {};
@@ -335,14 +339,13 @@ export async function saveDraft(
       lastModified: new Date().toISOString(),
     };
 
-    console.log('[Database] Saving draft:', {
-      bookId,
-      sectionId,
-      translatedLength: translated.length,
-      draftCount: Object.keys(currentDrafts).length,
+    console.log('[saveDraft] Prepared new drafts object:', {
+      totalDrafts: Object.keys(currentDrafts).length,
+      sectionIds: Object.keys(currentDrafts),
     });
 
-    const result = await db
+    console.log('[saveDraft] Executing database update...');
+    const updateResult = await db
       .update(books)
       .set({ 
         drafts: currentDrafts,
@@ -350,12 +353,22 @@ export async function saveDraft(
       })
       .where(eq(books.id, bookId));
 
-    console.log('[Database] Draft saved successfully:', {
-      bookId,
-      sectionId,
-    });
+    console.log('[saveDraft] Database update completed:', updateResult);
+
+    // Verify the update was persisted
+    console.log('[saveDraft] Verifying update by re-fetching book...');
+    const verifyBook = await getBook(bookId);
+    if (verifyBook && verifyBook.drafts && verifyBook.drafts[sectionId]) {
+      console.log('[saveDraft] ✓ Draft verified in database:', {
+        sectionId,
+        hasTranslated: !!verifyBook.drafts[sectionId].translated,
+      });
+    } else {
+      console.error('[saveDraft] ✗ Draft NOT found after save!');
+      throw new Error('Draft not persisted to database');
+    }
   } catch (error) {
-    console.error('[Database] Failed to save draft:', error);
+    console.error('[saveDraft] Error:', error);
     throw error;
   }
 }

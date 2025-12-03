@@ -7,6 +7,7 @@ import { booksRouter } from "./routers/books";
 import { translationRouter } from "./routers/translation";
 import { exportRouter } from "./routers/export";
 import { userRouter } from "./routers/user";
+import { adminRouter } from "./routers/admin";
 
 export const appRouter = router({
   system: systemRouter,
@@ -36,6 +37,9 @@ export const appRouter = router({
 
   // User settings and preferences
   user: userRouter,
+
+  // Admin operations
+  admin: adminRouter,
 });
 
 export type AppRouter = typeof appRouter;
