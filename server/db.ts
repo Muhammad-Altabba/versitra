@@ -450,8 +450,10 @@ export async function getAllSectionDrafts(bookId: string) {
 
     console.log('[getAllSectionDrafts] ✅ Found', sectionDataResults.length, 'draft sections');
     
-    // Build metadata map
+    // Build metadata map and draft content map
     const sectionsMetadata: Record<string, any> = {};
+    const sectionDrafts: Record<string, string> = {};
+    
     for (const data of sectionDataResults) {
       sectionsMetadata[data.sectionId] = {
         translated: data.translationStatus === 'committed',
@@ -459,15 +461,21 @@ export async function getAllSectionDrafts(bookId: string) {
         hasDraft: !!data.draftTranslation,
         lastModified: data.draftLastModified || data.lastModified,
       };
+      
+      // Include draft content if it exists
+      if (data.draftTranslation) {
+        sectionDrafts[data.sectionId] = data.draftTranslation;
+      }
     }
     
     return {
       sections,
       sectionsMetadata,
+      sectionDrafts,
     };
   } catch (error) {
     console.error('[getAllSectionDrafts] Error fetching drafts:', error);
-    return { sections: [], sectionsMetadata: {} };
+    return { sections: [], sectionsMetadata: {}, sectionDrafts: {} };
   }
 }
 

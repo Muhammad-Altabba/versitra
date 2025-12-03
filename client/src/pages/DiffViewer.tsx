@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { trpc } from "@/lib/trpc";
 import { APP_TITLE } from "@/const";
 import { BookOpen, ArrowLeft, GitCommit, Loader2, FileText } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
 import ReactMarkdown from "react-markdown";
 
@@ -17,7 +17,7 @@ export default function DiffViewer() {
   const [headCommit, setHeadCommit] = useState<string>("");
 
   const { data: book } = trpc.books.get.useQuery(
-    { id: bookId || "" },
+    { bookId: bookId || "" },
     { enabled: !!bookId && isAuthenticated }
   );
 
@@ -30,7 +30,7 @@ export default function DiffViewer() {
     { enabled: !!bookId && isAuthenticated }
   );
 
-  const hasDrafts = allDrafts && Object.keys(allDrafts).length > 0;
+  const hasDrafts = allDrafts && (Object.keys(allDrafts.sectionDrafts || {}).length > 0 || Object.keys(allDrafts.sectionsMetadata || {}).some(k => (allDrafts.sectionsMetadata as Record<string, any>)?.[k]?.hasDraft));
 
   // Parse owner and repo correctly
   // If repoName contains "/", it's in "owner/repo" format

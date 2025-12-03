@@ -417,3 +417,25 @@ NOTES:
 - [x] All 159 tests passing
   * No regressions from fixes
   * TypeScript compilation clean
+
+
+## Session 10 - Draft Save/Load Fixes
+
+- [x] Fix getAllSectionDrafts to return draft content in sectionDrafts field
+  * Now returns { sections, sectionsMetadata, sectionDrafts }
+  * sectionDrafts contains actual draft translation content
+  * Allows BookEditor to load drafts from database on project reopen
+
+- [x] Update BookEditor to load drafts from database first
+  * Changed loadSectionTranslation to check allDrafts.sectionDrafts first
+  * Falls back to Git if no draft exists
+  * Properly loads saved drafts when reopening projects
+
+- [x] Fix DiffViewer hasDrafts check
+  * Updated to check allDrafts.sectionDrafts and sectionsMetadata structure
+  * Properly detects when drafts exist
+  * Fixed TypeScript type errors
+
+- [x] All 159 tests passing
+  * No regressions from fixes
+  * Draft loading logic tested and working

@@ -128,20 +128,33 @@ export default function BookEditor() {
         
         // Check if already loaded in memory
         if (translationProgress[sectionId]) {
+          console.log(`[BookEditor] Using cached translation for ${sectionId}`);
           setTranslatedContent(translationProgress[sectionId]);
           return;
         }
         
-        // Check metadata first to see if translation exists
-        const metadata = allDrafts?.sectionsMetadata?.[sectionId];
+        // First, check if there's a draft in the database
+        const draftContent = allDrafts?.sectionDrafts?.[sectionId];
+        if (draftContent) {
+          console.log(`[BookEditor] Loading draft from database for ${sectionId}`);
+          setTranslatedContent(draftContent);
+          setTranslationProgress(prev => ({
+            ...prev,
+            [sectionId]: draftContent,
+          }));
+          return;
+        }
+        
+        // Check metadata to see if translation is committed to Git
+        const metadata = (allDrafts?.sectionsMetadata as Record<string, any>)?.[sectionId];
         if (!metadata || !metadata.translated) {
-          // Not translated yet - don't try to load from Git (avoid 404)
+          // Not translated yet
           console.log(`[BookEditor] Section ${sectionId} not translated yet`);
           setTranslatedContent('');
           return;
         }
         
-        // Translation exists according to metadata - load from Git
+        // Translation is committed to Git - load from Git
         console.log(`[BookEditor] Loading translation for ${sectionId} from Git`);
         try {
           const content = await utils.git.getFile.fetch({
@@ -179,6 +192,7 @@ export default function BookEditor() {
   const commitFileMutation = trpc.git.commitFile.useMutation();
   const exportPDFMutation = trpc.export.bookToPDF.useMutation();
   const saveSectionDraftMutation = trpc.books.saveSectionDraft.useMutation();
+  const commitVersionMutation = trpc.books.commitVersion.useMutation();
 
   const handleProcessPDF = async () => {
     if (!pdfFile || !book) return;
@@ -320,7 +334,7 @@ export default function BookEditor() {
     try {
       console.log("[BookEditor] Creating version:", title);
       
-      const result = await trpc.books.commitVersion.mutate({
+      const result = await commitVersionMutation.mutateAsync({
         bookId: bookId || "",
         versionTitle: title,
         versionDescription: description,
@@ -501,7 +515,7 @@ export default function BookEditor() {
               <CardContent>
                 <div className="space-y-2">
                   {sections.map((section, index) => {
-                    const metadata = allDrafts?.sectionsMetadata || {};
+                    const metadata = (allDrafts?.sectionsMetadata as Record<string, any>) || {};
                     const isTranslated = metadata[section.id]?.translated || false;
                     return (
                       <button

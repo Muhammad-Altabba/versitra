@@ -106,8 +106,7 @@ export default function Dashboard() {
 
     try {
       await deleteBookMutation.mutateAsync({
-        id: bookToDelete.id,
-        deleteRepo,
+        bookId: bookToDelete.id,
       });
 
       setDeleteDialogOpen(false);
