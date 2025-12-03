@@ -291,16 +291,20 @@ export default function BookEditor() {
         const section = sections[currentSectionIndex];
         const sectionId = section?.id || "section";
         
-        console.log('[BookEditor] Auto-saving AI draft for section:', sectionId);
+        console.log('[BookEditor] Auto-saving AI draft for section:', { sectionId, translatedLength: draft.translated.length });
         
-        await saveDraftMutation.mutateAsync({
+        // Call the save mutation and wait for it to complete
+        const saveResult = await saveDraftMutation.mutateAsync({
           bookId: bookId || "",
           sectionId,
           source: section?.content || '',
           translated: draft.translated,
         });
 
-        // Refresh drafts list
+        console.log('[BookEditor] Save mutation returned:', saveResult);
+
+        // Refresh drafts list to ensure UI is in sync
+        console.log('[BookEditor] Invalidating drafts cache...');
         await utils.books.getAllDrafts.invalidate({ bookId: bookId || "" });
         
         // Update last saved time
@@ -308,11 +312,15 @@ export default function BookEditor() {
         setLastSavedTime(now);
         lastSavedRef.current = now;
 
-        console.log('[BookEditor] AI draft auto-saved successfully');
-        toast.success("AI draft auto-saved");
-      } catch (saveError) {
-        console.error('[BookEditor] Failed to auto-save AI draft:', saveError);
-        toast.error("AI draft generated but auto-save failed");
+        console.log('[BookEditor] ✓ AI draft auto-saved successfully');
+        toast.success("AI draft auto-saved to database");
+      } catch (saveError: any) {
+        console.error('[BookEditor] ✗ Failed to auto-save AI draft:', {
+          error: saveError,
+          message: saveError?.message,
+          code: saveError?.code,
+        });
+        toast.error(`AI draft generated but save failed: ${saveError?.message || 'Unknown error'}`);
       }
     } catch (error) {
       toast.error("Failed to generate draft");

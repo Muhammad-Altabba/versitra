@@ -5,6 +5,7 @@ import { APP_TITLE } from "@/const";
 import { Database, ExternalLink, ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import AdminUserManagement from "@/components/AdminUserManagement";
 
 export default function Admin() {
   const [, setLocation] = useLocation();
@@ -50,6 +51,12 @@ export default function Admin() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
+        {/* User Management Section */}
+        <div className="mb-8">
+          <AdminUserManagement />
+        </div>
+
+        {/* Admin Tools Section */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {/* Database Explorer */}
           <Card>
