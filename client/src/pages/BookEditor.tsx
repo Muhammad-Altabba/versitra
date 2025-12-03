@@ -347,11 +347,9 @@ export default function BookEditor() {
 
       toast.success("Draft saved locally");
 
-      // Move to next section
-      if (currentSectionIndex < sections.length - 1) {
-        setCurrentSectionIndex(currentSectionIndex + 1);
-        setTranslatedContent("");
-      }
+      // Clear the translated content for next edit
+      setTranslatedContent("");
+      // NOTE: Do NOT auto-navigate to next section - user should manually navigate
     } catch (error) {
       toast.error("Failed to save translation");
       console.error(error);

@@ -1,22 +1,60 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { parseUsageLimit, getCurrentMonth } from "../../server/_core/aiUsageTracking";
 
 describe("AI Usage Tracking", () => {
-  it("should track usage by month", () => {
-    const month = new Date().toISOString().slice(0, 7);
-    expect(month).toMatch(/^\d{4}-\d{2}$/);
+  describe("parseUsageLimit", () => {
+    it("should parse unlimited limit", () => {
+      const result = parseUsageLimit("unlimited");
+      expect(result).toEqual({ type: "unlimited" });
+    });
+
+    it("should parse null as unlimited", () => {
+      const result = parseUsageLimit(null);
+      expect(result).toEqual({ type: "unlimited" });
+    });
+
+    it("should parse numeric limit", () => {
+      const result = parseUsageLimit("1000");
+      expect(result).toEqual({ type: "custom", value: 1000 });
+    });
+
+    it("should parse zero as unlimited", () => {
+      const result = parseUsageLimit("0");
+      expect(result).toEqual({ type: "unlimited" });
+    });
+
+    it("should parse negative as unlimited", () => {
+      const result = parseUsageLimit("-100");
+      expect(result).toEqual({ type: "unlimited" });
+    });
+
+    it("should parse invalid string as unlimited", () => {
+      const result = parseUsageLimit("invalid");
+      expect(result).toEqual({ type: "unlimited" });
+    });
+
+    it("should handle large numbers", () => {
+      const result = parseUsageLimit("999999");
+      expect(result).toEqual({ type: "custom", value: 999999 });
+    });
   });
 
-  it("should accumulate usage within same month", () => {
-    const initial = { requestCount: 100 };
-    const additional = 50;
-    const total = initial.requestCount + additional;
-    expect(total).toBe(150);
-  });
+  describe("getCurrentMonth", () => {
+    it("should return current month in YYYY-MM format", () => {
+      const month = getCurrentMonth();
+      expect(month).toMatch(/^\d{4}-\d{2}$/);
 
-  it("should reset usage on new month", () => {
-    const december = "2024-12";
-    const january = "2025-01";
-    expect(december).not.toBe(january);
+      const [year, monthNum] = month.split("-");
+      expect(parseInt(year)).toBeGreaterThanOrEqual(2024);
+      expect(parseInt(monthNum)).toBeGreaterThanOrEqual(1);
+      expect(parseInt(monthNum)).toBeLessThanOrEqual(12);
+    });
+
+    it("should pad month with leading zero", () => {
+      const month = getCurrentMonth();
+      const parts = month.split("-");
+      expect(parts[1]).toMatch(/^\d{2}$/);
+    });
   });
 });
 
@@ -36,21 +74,6 @@ describe("AI Provider Configuration", () => {
     const provider = "openai";
     const hasApiKey = provider !== "builtin";
     expect(hasApiKey).toBe(true);
-  });
-
-  it("should support OpenAI provider", () => {
-    const provider = "openai";
-    expect(["builtin", "openai", "claude", "gemini"]).toContain(provider);
-  });
-
-  it("should support Claude provider", () => {
-    const provider = "claude";
-    expect(["builtin", "openai", "claude", "gemini"]).toContain(provider);
-  });
-
-  it("should support Gemini provider", () => {
-    const provider = "gemini";
-    expect(["builtin", "openai", "claude", "gemini"]).toContain(provider);
   });
 });
 
@@ -87,18 +110,6 @@ describe("Usage Limit Enforcement", () => {
     const allowed = current < limit;
     expect(allowed).toBe(true);
   });
-
-  it("should handle zero limit as unlimited", () => {
-    const limit = 0;
-    const isUnlimited = limit === 0;
-    expect(isUnlimited).toBe(true);
-  });
-
-  it("should handle negative limit as unlimited", () => {
-    const limit = -1;
-    const isUnlimited = limit < 0;
-    expect(isUnlimited).toBe(true);
-  });
 });
 
 describe("AI Settings", () => {
@@ -127,6 +138,47 @@ describe("AI Settings", () => {
   it("should default to builtin provider", () => {
     const defaultProvider = "builtin";
     expect(defaultProvider).toBe("builtin");
+  });
+});
+
+describe("Monthly Usage Tracking", () => {
+  it("should track usage by month", () => {
+    const usage = {
+      month: "2024-12",
+      requestCount: 100,
+      tokenCount: 3000,
+    };
+    expect(usage.month).toMatch(/^\d{4}-\d{2}$/);
+  });
+
+  it("should accumulate usage within same month", () => {
+    const initial = { requestCount: 100 };
+    const additional = 50;
+    const total = initial.requestCount + additional;
+    expect(total).toBe(150);
+  });
+
+  it("should reset usage on new month", () => {
+    const december = "2024-12";
+    const january = "2025-01";
+    expect(december).not.toBe(january);
+  });
+});
+
+describe("AI API Provider Selection", () => {
+  it("should support OpenAI provider", () => {
+    const provider = "openai";
+    expect(["builtin", "openai", "claude", "gemini"]).toContain(provider);
+  });
+
+  it("should support Claude provider", () => {
+    const provider = "claude";
+    expect(["builtin", "openai", "claude", "gemini"]).toContain(provider);
+  });
+
+  it("should support Gemini provider", () => {
+    const provider = "gemini";
+    expect(["builtin", "openai", "claude", "gemini"]).toContain(provider);
   });
 
   it("should validate endpoint URL format", () => {
@@ -158,34 +210,5 @@ describe("Usage Limit Types", () => {
     const limit = { type: "custom" as const, value: 5000 };
     expect(limit.type).toBe("custom");
     expect(limit.value).toBe(5000);
-  });
-});
-
-describe("Monthly Usage Tracking", () => {
-  it("should track usage by month", () => {
-    const usage = {
-      month: "2024-12",
-      requestCount: 100,
-      tokenCount: 3000,
-    };
-    expect(usage.month).toMatch(/^\d{4}-\d{2}$/);
-  });
-
-  it("should accumulate usage within same month", () => {
-    const initial = { requestCount: 100 };
-    const additional = 50;
-    const total = initial.requestCount + additional;
-    expect(total).toBe(150);
-  });
-
-  it("should support different usage metrics", () => {
-    const usage = {
-      requestCount: 100,
-      tokenCount: 5000,
-      characterCount: 10000,
-    };
-    expect(usage.requestCount).toBe(100);
-    expect(usage.tokenCount).toBe(5000);
-    expect(usage.characterCount).toBe(10000);
   });
 });

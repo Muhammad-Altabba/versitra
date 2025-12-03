@@ -21,7 +21,7 @@ interface UsageLimit {
  * Parse usage limit string to structured format
  * Examples: "unlimited", "1000", "5000"
  */
-function parseUsageLimit(limitStr: string | null): UsageLimit {
+export function parseUsageLimit(limitStr: string | null): UsageLimit {
   if (!limitStr || limitStr === "unlimited") {
     return { type: "unlimited" };
   }
@@ -38,7 +38,7 @@ function parseUsageLimit(limitStr: string | null): UsageLimit {
 /**
  * Get current month in YYYY-MM format
  */
-function getCurrentMonth(): string {
+export function getCurrentMonth(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }

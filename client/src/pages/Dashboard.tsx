@@ -10,6 +10,7 @@ import { BookOpen, Plus, LogOut, Github, GitlabIcon as Gitlab, Loader2, GitBranc
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
+import AiSettingsPanel from "@/components/AiSettingsPanel";
 
 export default function Dashboard() {
   const { user, loading, isAuthenticated, logout } = useAuth();
@@ -55,6 +56,7 @@ export default function Dashboard() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [bookToDelete, setBookToDelete] = useState<{ id: string; title: string } | null>(null);
   const [deleteRepo, setDeleteRepo] = useState(true);
+  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
 
   if (loading || !isAuthenticated) {
     return (
@@ -158,6 +160,23 @@ export default function Dashboard() {
                   </Button>
                 </div>
               )}
+              <Dialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <Settings className="h-4 w-4 mr-2" />
+                    AI Settings
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>AI Configuration</DialogTitle>
+                    <DialogDescription>
+                      Configure your AI API provider and usage limits
+                    </DialogDescription>
+                  </DialogHeader>
+                  <AiSettingsPanel onSave={() => setSettingsDialogOpen(false)} />
+                </DialogContent>
+              </Dialog>
               {user?.role === 'admin' && (
                 <Button variant="ghost" size="sm" onClick={() => setLocation('/admin')}>
                   <Settings className="h-4 w-4 mr-2" />

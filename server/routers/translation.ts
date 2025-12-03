@@ -4,6 +4,7 @@ import { splitDocument, generateTranslationDraft, batchGenerateDrafts } from '..
 import { extractTextFromPDF, convertPDFTextToMarkdown } from '../translation/pdfExtractorJS';
 import { updateBookSections, getBook, updateBookOriginalText } from '../db';
 import { TRPCError } from '@trpc/server';
+import { trackAiUsage, checkUsageLimit } from '../_core/aiUsageTracking';
 
 /**
  * Translation router
@@ -131,13 +132,41 @@ export const translationRouter = router({
         context: z.string().optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      return await generateTranslationDraft(
+    .mutation(async ({ ctx, input }) => {
+      // Check AI usage limit before generating draft
+      const usageCheck = await checkUsageLimit(ctx.user.id);
+      
+      if (!usageCheck.allowed) {
+        console.warn('[Translation.generateDraft] User exceeded AI usage limit:', {
+          userId: ctx.user.id,
+          current: usageCheck.current,
+          limit: usageCheck.limit,
+        });
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: `AI usage limit exceeded. Current: ${usageCheck.current}/${usageCheck.limit} requests this month.`,
+        });
+      }
+
+      console.log('[Translation.generateDraft] Generating draft for section:', {
+        userId: ctx.user.id,
+        sectionId: input.section.id,
+        usagePercentage: usageCheck.percentageUsed,
+      });
+
+      // Generate the translation draft
+      const result = await generateTranslationDraft(
         input.section,
         input.sourceLanguage,
         input.targetLanguage,
         input.context
       );
+
+      // Track AI usage after successful generation
+      await trackAiUsage(ctx.user.id, 1, 0);
+      console.log('[Translation.generateDraft] ✅ AI usage tracked for user:', ctx.user.id);
+
+      return result;
     }),
 
   /**
@@ -159,8 +188,38 @@ export const translationRouter = router({
         targetLanguage: z.string(),
       })
     )
-    .mutation(async ({ input }) => {
-      return await batchGenerateDrafts(input.sections, input.sourceLanguage, input.targetLanguage);
+    .mutation(async ({ ctx, input }) => {
+      // Check AI usage limit before batch generation
+      const usageCheck = await checkUsageLimit(ctx.user.id);
+      
+      if (!usageCheck.allowed) {
+        console.warn('[Translation.batchGenerateDrafts] User exceeded AI usage limit:', {
+          userId: ctx.user.id,
+          current: usageCheck.current,
+          limit: usageCheck.limit,
+        });
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: `AI usage limit exceeded. Current: ${usageCheck.current}/${usageCheck.limit} requests this month.`,
+        });
+      }
+
+      console.log('[Translation.batchGenerateDrafts] Generating drafts for sections:', {
+        userId: ctx.user.id,
+        sectionCount: input.sections.length,
+        usagePercentage: usageCheck.percentageUsed,
+      });
+
+      // Generate drafts
+      const result = await batchGenerateDrafts(input.sections, input.sourceLanguage, input.targetLanguage);
+
+      // Track AI usage for all sections
+      await trackAiUsage(ctx.user.id, input.sections.length, 0);
+      console.log('[Translation.batchGenerateDrafts] ✅ AI usage tracked for user:', {
+        userId: ctx.user.id,
+        sectionsProcessed: input.sections.length,
+      });
+
+      return result;
     }),
 });
-
