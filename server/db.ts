@@ -329,10 +329,28 @@ export async function saveDraft(
       console.error('[saveDraft] Book not found:', bookId);
       throw new Error('Book not found');
     }
-    console.log('[saveDraft] Book found, current drafts:', Object.keys(book.drafts || {}).length);
+    console.log('[saveDraft] Book found, current drafts:', book.drafts ? Object.keys(book.drafts).length : 0);
 
-    // Update drafts
-    const currentDrafts = (book.drafts as Record<string, any>) || {};
+    // Parse drafts - handle both object and null/undefined cases
+    let currentDrafts: Record<string, any> = {};
+    
+    if (book.drafts) {
+      // If drafts is an object, use it
+      if (typeof book.drafts === 'object') {
+        currentDrafts = book.drafts as Record<string, any>;
+      }
+      // If drafts is a string (JSON), parse it
+      else if (typeof book.drafts === 'string') {
+        try {
+          currentDrafts = JSON.parse(book.drafts);
+        } catch (e) {
+          console.warn('[saveDraft] Failed to parse drafts JSON, starting fresh');
+          currentDrafts = {};
+        }
+      }
+    }
+
+    // Add new draft
     currentDrafts[sectionId] = {
       source,
       translated,
@@ -342,6 +360,10 @@ export async function saveDraft(
     console.log('[saveDraft] Prepared new drafts object:', {
       totalDrafts: Object.keys(currentDrafts).length,
       sectionIds: Object.keys(currentDrafts),
+      newDraftContent: {
+        sectionId,
+        translatedLength: translated.length,
+      }
     });
 
     console.log('[saveDraft] Executing database update...');
@@ -353,18 +375,34 @@ export async function saveDraft(
       })
       .where(eq(books.id, bookId));
 
-    console.log('[saveDraft] Database update completed:', updateResult);
+    console.log('[saveDraft] Database update completed, rows affected:', updateResult);
 
     // Verify the update was persisted
     console.log('[saveDraft] Verifying update by re-fetching book...');
     const verifyBook = await getBook(bookId);
-    if (verifyBook && verifyBook.drafts && verifyBook.drafts[sectionId]) {
+    
+    let verifyDrafts: Record<string, any> = {};
+    if (verifyBook?.drafts) {
+      if (typeof verifyBook.drafts === 'object') {
+        verifyDrafts = verifyBook.drafts as Record<string, any>;
+      } else if (typeof verifyBook.drafts === 'string') {
+        try {
+          verifyDrafts = JSON.parse(verifyBook.drafts);
+        } catch (e) {
+          console.error('[saveDraft] Failed to parse verified drafts');
+        }
+      }
+    }
+    
+    if (verifyDrafts && verifyDrafts[sectionId]) {
       console.log('[saveDraft] ✓ Draft verified in database:', {
         sectionId,
-        hasTranslated: !!verifyBook.drafts[sectionId].translated,
+        hasTranslated: !!verifyDrafts[sectionId].translated,
+        translatedLength: verifyDrafts[sectionId].translated?.length || 0,
       });
     } else {
       console.error('[saveDraft] ✗ Draft NOT found after save!');
+      console.error('[saveDraft] Verified drafts:', verifyDrafts);
       throw new Error('Draft not persisted to database');
     }
   } catch (error) {

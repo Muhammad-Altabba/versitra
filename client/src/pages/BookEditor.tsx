@@ -376,8 +376,8 @@ export default function BookEditor() {
 
       toast.success("Draft saved locally");
 
-      // Clear the translated content for next edit
-      setTranslatedContent("");
+      // Keep the translated content - do NOT clear it
+      // User should manually clear or navigate to next section
       // NOTE: Do NOT auto-navigate to next section - user should manually navigate
     } catch (error) {
       toast.error("Failed to save translation");

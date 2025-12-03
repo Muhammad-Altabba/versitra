@@ -280,3 +280,18 @@ For Production Environment:
 - [x] All tests passing (161 tests)
   * Zero TypeScript errors
   * Dev server running without errors
+
+
+## CRITICAL BUG - Session 4
+
+- [x] Draft not saved to database - FIXED
+  * Enhanced saveDraft function with proper null/undefined handling
+  * Added JSON parsing for drafts field (handles both object and string)
+  * Added comprehensive logging at each step
+  * Added verification step to ensure data persists
+  * Handles edge case where drafts field is initially null
+
+- [x] Text box clears after Save Draft pressed - FIXED
+  * Removed setTranslatedContent("") call after save
+  * Text now persists after save as expected
+  * User can manually clear or navigate to next section
