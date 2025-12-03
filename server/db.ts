@@ -360,6 +360,12 @@ export async function saveSectionDraft(
       });
     }
 
+    // Also update the book's lastModified timestamp to mark it as recently edited
+    await db
+      .update(books)
+      .set({ lastModified: new Date() })
+      .where(eq(books.id, bookId));
+
     console.log('[saveSectionDraft] ✅ Section draft saved successfully');
   } catch (error) {
     console.error('[saveSectionDraft] Error saving draft:', error);
@@ -409,7 +415,7 @@ export async function getSectionDraft(bookId: string, sectionId: string) {
 }
 
 /**
- * Get all drafts for a book
+ * Get all drafts for a book - returns book with cached sections and draft metadata
  */
 export async function getAllSectionDrafts(bookId: string) {
   console.log('[getAllSectionDrafts] Fetching all drafts for book:', bookId);
@@ -417,27 +423,51 @@ export async function getAllSectionDrafts(bookId: string) {
   const db = await getDb();
   if (!db) {
     console.warn('[getAllSectionDrafts] Database not available');
-    return [];
+    return { sections: [], sectionsMetadata: {} };
   }
 
   try {
-    const results = await db
+    // Get the book with cached sections
+    const bookResult = await db
+      .select()
+      .from(books)
+      .where(eq(books.id, bookId))
+      .limit(1);
+    
+    if (bookResult.length === 0) {
+      console.log('[getAllSectionDrafts] Book not found');
+      return { sections: [], sectionsMetadata: {} };
+    }
+    
+    const book = bookResult[0];
+    const sections = book.sections || [];
+    
+    // Get all section drafts/status from sectionData table
+    const sectionDataResults = await db
       .select()
       .from(sectionData)
       .where(eq(sectionData.bookId, bookId));
 
-    console.log('[getAllSectionDrafts] ✅ Found', results.length, 'sections');
+    console.log('[getAllSectionDrafts] ✅ Found', sectionDataResults.length, 'draft sections');
     
-    return results.map(data => ({
-      sectionId: data.sectionId,
-      source: data.draftSource || data.originalContent,
-      translated: data.draftTranslation || '',
-      status: data.translationStatus,
-      lastModified: data.draftLastModified || data.lastModified,
-    }));
+    // Build metadata map
+    const sectionsMetadata: Record<string, any> = {};
+    for (const data of sectionDataResults) {
+      sectionsMetadata[data.sectionId] = {
+        translated: data.translationStatus === 'committed',
+        status: data.translationStatus,
+        hasDraft: !!data.draftTranslation,
+        lastModified: data.draftLastModified || data.lastModified,
+      };
+    }
+    
+    return {
+      sections,
+      sectionsMetadata,
+    };
   } catch (error) {
     console.error('[getAllSectionDrafts] Error fetching drafts:', error);
-    return [];
+    return { sections: [], sectionsMetadata: {} };
   }
 }
 

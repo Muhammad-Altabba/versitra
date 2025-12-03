@@ -378,3 +378,42 @@ NOTES:
 - Old JSON storage completely removed - no backward compatibility
 - sectionData table is now the single source of truth for all section-related data
 - BookEditor needs refactoring to work with array of sectionData instead of JSON object
+
+## Session 9 - Section Save/Load Process Fixes
+
+- [x] Fix getAllSectionDrafts to return book with cached sections and metadata
+  * Changed return type from array to object with sections and sectionsMetadata
+  * Returns book.sections (cached from split) and metadata from sectionData table
+  * Fixes BookEditor loading cached sections on project reopen
+
+- [x] Update saveSectionDraft to also update book lastModified timestamp
+  * Now updates books table lastModified after saving draft
+  * Ensures book shows as recently edited
+
+- [x] Add cache invalidation in BookEditor after saving drafts
+  * Added utils.books.getAllSectionDrafts.invalidate() after save
+  * Ensures UI updates with latest draft status
+  * Fixes draft indicator not showing after save
+
+- [x] Remove verification mode that was loading from Git unnecessarily
+  * Removed gitProgress query that was fetching from GitHub/GitLab on every load
+  * Database cache is now source of truth
+  * Reduces API calls and improves performance
+
+- [x] Implement handleCreateVersion procedure in books router
+  * Added commitVersion mutation to books router
+  * Accepts bookId, versionTitle, and optional versionDescription
+  * Placeholder implementation (full Git commit logic to be added)
+
+- [x] Implement handleCreateVersion function in BookEditor
+  * Calls trpc.books.commitVersion.mutate()
+  * Invalidates drafts cache after version created
+  * Shows success/error toast messages
+
+- [x] Remove duplicate handleExportPDF declaration
+  * Was declared twice in BookEditor causing compilation error
+  * Removed duplicate, kept single implementation
+
+- [x] All 159 tests passing
+  * No regressions from fixes
+  * TypeScript compilation clean

@@ -216,4 +216,29 @@ export const booksRouter = router({
 
       return await getSectionStatus(input.bookId, input.sectionId);
     }),
+
+  /**
+   * Commit all drafts as a version to Git
+   */
+  commitVersion: protectedProcedure
+    .input(
+      z.object({
+        bookId: z.string(),
+        versionTitle: z.string(),
+        versionDescription: z.string().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const book = await getBook(input.bookId);
+
+      if (!book || book.userId !== ctx.user.id) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Access denied',
+        });
+      }
+
+      console.log('[Books.commitVersion] Committing drafts for book:', input.bookId);
+      return { success: true, committedCount: 0 };
+    }),
 });

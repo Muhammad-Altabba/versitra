@@ -58,44 +58,8 @@ export default function BookEditor() {
     { enabled: !!bookId && isAuthenticated }
   );
 
-  // VERIFICATION MODE: Also load from Git to compare (temporary for debugging)
-  // Load translation progress from Git
-  const { data: gitProgress } = trpc.git.loadTranslationProgress.useQuery(
-    {
-      owner: gitInfo?.username || '',
-      repo: book?.repoName.split('/').pop() || '',
-    },
-    {
-      enabled: !!book && !!gitInfo && isAuthenticated && !!allDrafts,
-    }
-  );
-
-  // Compare database cache with Git reality
-  useEffect(() => {
-    if (allDrafts && gitProgress) {
-      const dbTranslated = Object.keys(allDrafts.sectionsMetadata || {}).filter(
-        (k) => allDrafts.sectionsMetadata?.[k]?.translated
-      );
-      const gitTranslated = gitProgress.translatedSections;
-      
-      console.log('[VERIFICATION] Database says translated:', dbTranslated);
-      console.log('[VERIFICATION] Git says translated:', gitTranslated);
-      
-      // Check for mismatches
-      const inDbNotGit = dbTranslated.filter((s) => !gitTranslated.includes(s));
-      const inGitNotDb = gitTranslated.filter((s) => !dbTranslated.includes(s));
-      
-      if (inDbNotGit.length > 0) {
-        console.warn('[VERIFICATION] ⚠️ In DB but not in Git:', inDbNotGit);
-      }
-      if (inGitNotDb.length > 0) {
-        console.warn('[VERIFICATION] ⚠️ In Git but not in DB:', inGitNotDb);
-      }
-      if (inDbNotGit.length === 0 && inGitNotDb.length === 0) {
-        console.log('[VERIFICATION] ✅ Database and Git are in sync!');
-      }
-    }
-  }, [allDrafts, gitProgress]);
+  // Note: Removed verification mode that was loading from Git unnecessarily
+  // Database cache is now the source of truth for section status
 
   // Load sections from cache on mount
   useEffect(() => {
@@ -327,8 +291,9 @@ export default function BookEditor() {
           throw mutationError;
         }
 
-        // Refresh drafts list to ensure UI is in sync
-        console.log('[BookEditor] Invalidating drafts cache...');
+      // Refresh drafts list to ensure UI is in sync
+      console.log('[BookEditor] Invalidating drafts cache...');
+      await utils.books.getAllSectionDrafts.invalidate({ bookId });
         
         // Update last saved time
         const now = new Date();
@@ -353,18 +318,51 @@ export default function BookEditor() {
 
   const handleCreateVersion = async (title: string, description?: string) => {
     try {
-      console.log('[BookEditor] Creating version:', title);
+      console.log("[BookEditor] Creating version:", title);
       
-      const result = // TODO: Implement commit version with new sectionData
+      const result = await trpc.books.commitVersion.mutate({
+        bookId: bookId || "",
+        versionTitle: title,
+        versionDescription: description,
+      });
 
       toast.success(`Version created! Committed ${result.committedCount} sections`);
       
       // Refresh drafts list (should be empty now)
+      await utils.books.getAllSectionDrafts.invalidate({ bookId });
       
-      console.log('[BookEditor] Version created successfully');
+      console.log("[BookEditor] Version created successfully");
     } catch (error: any) {
       toast.error(error.message || "Failed to create version");
-      console.error('[BookEditor] Failed to create version:', error);
+      console.error("[BookEditor] Failed to create version:", error);
+    }
+   };
+
+  const handleExportPDF = async () => {
+    if (!book) return;
+
+    try {
+      const result = await exportPDFMutation.mutateAsync({
+        bookId: book.id,
+        sections: sections.map((s) => ({
+          title: s.id,
+          content: translatedContent || s.content,
+        })),
+      });
+
+      // Download PDF
+      const blob = new Blob([Buffer.from(result.pdf, "base64")], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = result.filename;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      toast.success("PDF exported successfully");
+    } catch (error) {
+      toast.error("Failed to export PDF");
+      console.error(error);
     }
   };
 
@@ -392,6 +390,7 @@ export default function BookEditor() {
       }));
 
       // Refresh drafts list
+      await utils.books.getAllSectionDrafts.invalidate({ bookId });
       
       // Update last saved time
       const now = new Date();
@@ -407,34 +406,6 @@ export default function BookEditor() {
       // NOTE: Do NOT auto-navigate to next section - user should manually navigate
     } catch (error) {
       toast.error("Failed to save translation");
-      console.error(error);
-    }
-  };
-
-  const handleExportPDF = async () => {
-    if (!book) return;
-
-    try {
-      const result = await exportPDFMutation.mutateAsync({
-        bookId: book.id,
-        sections: sections.map((s) => ({
-          title: s.id,
-          content: translatedContent || s.content,
-        })),
-      });
-
-      // Download PDF
-      const blob = new Blob([Buffer.from(result.pdf, "base64")], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = result.filename;
-      a.click();
-      URL.revokeObjectURL(url);
-
-      toast.success("PDF exported successfully");
-    } catch (error) {
-      toast.error("Failed to export PDF");
       console.error(error);
     }
   };
