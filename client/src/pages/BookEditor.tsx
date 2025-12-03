@@ -291,11 +291,25 @@ export default function BookEditor() {
         const section = sections[currentSectionIndex];
         const sectionId = section?.id || "section";
         
-        console.log('[BookEditor] Auto-saving AI draft for section:', { sectionId, translatedLength: draft.translated.length });
+        // Validate that we have the translated content
+        if (!draft.translated || draft.translated.trim() === '') {
+          console.error('[BookEditor] AI draft is empty, cannot save');
+          toast.error("AI draft is empty, cannot save");
+          return;
+        }
+        
+        // Validate bookId
+        if (!bookId) {
+          console.error('[BookEditor] bookId is missing');
+          toast.error("Cannot save: book ID is missing");
+          return;
+        }
+        
+        console.log('[BookEditor] Auto-saving AI draft for section:', { sectionId, translatedLength: draft.translated.length, bookId });
         
         // Call the save mutation and wait for it to complete
         const saveResult = await saveDraftMutation.mutateAsync({
-          bookId: bookId || "",
+          bookId: bookId,
           sectionId,
           source: section?.content || '',
           translated: draft.translated,

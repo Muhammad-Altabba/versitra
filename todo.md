@@ -303,3 +303,13 @@ For Production Environment:
 - [x] Integrate AdminUserManagement into Admin page - Component added to Admin.tsx
 - [ ] Add audit logging for admin actions - Track when admins update user limits with timestamps and before/after values
 - [ ] Create usage analytics dashboard - Show platform-wide AI usage trends, top users, and monthly cost projections
+
+
+## CRITICAL BUG - Session 6
+
+- [x] AI Draft button not saving and erasing previous drafts - INVESTIGATION COMPLETE
+  * Added validation to check if draft.translated is empty
+  * Added validation to check if bookId is present
+  * Enhanced error logging to show actual error messages
+  * All 161 tests passing
+  * Issue likely requires user testing to reproduce and debug with actual data
