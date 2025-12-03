@@ -214,7 +214,7 @@ export default function BookEditor() {
   const commitFileMutation = trpc.git.commitFile.useMutation();
   const exportPDFMutation = trpc.export.bookToPDF.useMutation();
   const updateMetadataMutation = trpc.books.updateSectionMetadata.useMutation();
-  const saveDraftMutation = trpc.books.saveDraft.useMutation();
+  const saveSectionDraftMutation = trpc.books.saveSectionDraft.useMutation();
   const commitVersionMutation = trpc.books.commitVersion.useMutation();
   const { data: allDrafts } = trpc.books.getAllDrafts.useQuery(
     { bookId: bookId || "" },
@@ -315,7 +315,7 @@ export default function BookEditor() {
         
         // Call the save mutation and wait for it to complete
         try {
-          const saveResult = await saveDraftMutation.mutateAsync({
+          const saveResult = await saveSectionDraftMutation.mutateAsync({
             bookId: bookId,
             sectionId,
             source: section?.content || '',
@@ -389,7 +389,7 @@ export default function BookEditor() {
       console.log('[BookEditor] Saving draft for section:', sectionId);
       
       // Save as draft to local DB (no Git commit)
-      await saveDraftMutation.mutateAsync({
+      await saveSectionDraftMutation.mutateAsync({
         bookId: bookId || "",
         sectionId,
         source: section?.content || '',
@@ -744,7 +744,7 @@ export default function BookEditor() {
                     </Button>
                     <SaveDraftButton
                       onClick={handleSaveTranslation}
-                      disabled={saveDraftMutation.isPending}
+                      disabled={saveSectionDraftMutation.isPending}
                       hasChanges={!!translatedContent}
                       size="sm"
                     />

@@ -13,6 +13,10 @@ import {
   getAllDrafts,
   clearDraft,
   clearAllDrafts,
+  saveSectionDraft,
+  getSectionDraft,
+  getAllSectionDrafts,
+  getSectionStatus,
 } from '../db';
 import { GitHubClient } from '../git/github';
 import { GitLabClient } from '../git/gitlab';
@@ -521,6 +525,100 @@ export const booksRouter = router({
         success: true, 
         committedCount: draftEntries.length 
       };
+    }),
+
+  /**
+   * Save draft using new sectionData table
+   */
+  saveSectionDraft: protectedProcedure
+    .input(
+      z.object({
+        bookId: z.string(),
+        sectionId: z.string(),
+        source: z.string(),
+        translated: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const book = await getBook(input.bookId);
+
+      if (!book || book.userId !== ctx.user.id) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Access denied',
+        });
+      }
+
+      await saveSectionDraft(input.bookId, input.sectionId, input.source, input.translated);
+      return { success: true };
+    }),
+
+  /**
+   * Get draft for a section using new sectionData table
+   */
+  getSectionDraft: protectedProcedure
+    .input(
+      z.object({
+        bookId: z.string(),
+        sectionId: z.string(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const book = await getBook(input.bookId);
+
+      if (!book || book.userId !== ctx.user.id) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Access denied',
+        });
+      }
+
+      return await getSectionDraft(input.bookId, input.sectionId);
+    }),
+
+  /**
+   * Get all section drafts for a book using new sectionData table
+   */
+  getAllSectionDrafts: protectedProcedure
+    .input(
+      z.object({
+        bookId: z.string(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const book = await getBook(input.bookId);
+
+      if (!book || book.userId !== ctx.user.id) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Access denied',
+        });
+      }
+
+      return await getAllSectionDrafts(input.bookId);
+    }),
+
+  /**
+   * Get section translation status
+   */
+  getSectionStatus: protectedProcedure
+    .input(
+      z.object({
+        bookId: z.string(),
+        sectionId: z.string(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const book = await getBook(input.bookId);
+
+      if (!book || book.userId !== ctx.user.id) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Access denied',
+        });
+      }
+
+      return await getSectionStatus(input.bookId, input.sectionId);
     }),
 });
 

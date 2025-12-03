@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, books, gitCredentials, InsertBook } from "../drizzle/schema";
+import { InsertUser, users, books, gitCredentials, InsertBook, sectionData, InsertSectionData } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -516,3 +516,174 @@ export async function updateBookOriginalText(
   console.log('[Database.updateBookOriginalText] ✅ Original text and markdown saved successfully');
 }
 
+
+
+/**
+ * Save draft translation for a section using the new sectionData table
+ */
+export async function saveSectionDraft(
+  bookId: string,
+  sectionId: string,
+  source: string,
+  translated: string
+) {
+  console.log('[saveSectionDraft] Saving draft for section:', { bookId, sectionId, translatedLength: translated.length });
+  
+  const db = await getDb();
+  if (!db) {
+    console.error('[saveSectionDraft] Database not available');
+    throw new Error('Database not available');
+  }
+
+  try {
+    const sectionDataId = `${bookId}-${sectionId}`;
+    
+    // Check if section data already exists
+    const existingData = await db
+      .select()
+      .from(sectionData)
+      .where(eq(sectionData.id, sectionDataId))
+      .limit(1);
+
+    if (existingData.length > 0) {
+      // Update existing section data
+      console.log('[saveSectionDraft] Updating existing section data');
+      await db
+        .update(sectionData)
+        .set({
+          draftTranslation: translated,
+          draftSource: source,
+          translationStatus: 'draft',
+          draftLastModified: new Date(),
+          lastModified: new Date(),
+        })
+        .where(eq(sectionData.id, sectionDataId));
+    } else {
+      // Create new section data
+      console.log('[saveSectionDraft] Creating new section data');
+      await db.insert(sectionData).values({
+        id: sectionDataId,
+        bookId,
+        sectionId,
+        originalContent: source,
+        draftTranslation: translated,
+        draftSource: source,
+        translationStatus: 'draft',
+        startLine: '0',
+        endLine: '0',
+        sectionType: 'paragraph',
+        draftLastModified: new Date(),
+      });
+    }
+
+    console.log('[saveSectionDraft] ✅ Section draft saved successfully');
+  } catch (error) {
+    console.error('[saveSectionDraft] Error saving draft:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get draft for a specific section
+ */
+export async function getSectionDraft(bookId: string, sectionId: string) {
+  console.log('[getSectionDraft] Fetching draft for section:', { bookId, sectionId });
+  
+  const db = await getDb();
+  if (!db) {
+    console.warn('[getSectionDraft] Database not available');
+    return null;
+  }
+
+  try {
+    const sectionDataId = `${bookId}-${sectionId}`;
+    const result = await db
+      .select()
+      .from(sectionData)
+      .where(eq(sectionData.id, sectionDataId))
+      .limit(1);
+
+    if (result.length === 0) {
+      console.log('[getSectionDraft] No draft found for section');
+      return null;
+    }
+
+    const data = result[0];
+    console.log('[getSectionDraft] ✅ Draft found, translationStatus:', data.translationStatus);
+    
+    return {
+      sectionId: data.sectionId,
+      source: data.draftSource || data.originalContent,
+      translated: data.draftTranslation || '',
+      status: data.translationStatus,
+      lastModified: data.draftLastModified || data.lastModified,
+    };
+  } catch (error) {
+    console.error('[getSectionDraft] Error fetching draft:', error);
+    return null;
+  }
+}
+
+/**
+ * Get all drafts for a book
+ */
+export async function getAllSectionDrafts(bookId: string) {
+  console.log('[getAllSectionDrafts] Fetching all drafts for book:', bookId);
+  
+  const db = await getDb();
+  if (!db) {
+    console.warn('[getAllSectionDrafts] Database not available');
+    return [];
+  }
+
+  try {
+    const results = await db
+      .select()
+      .from(sectionData)
+      .where(eq(sectionData.bookId, bookId));
+
+    console.log('[getAllSectionDrafts] ✅ Found', results.length, 'sections');
+    
+    return results.map(data => ({
+      sectionId: data.sectionId,
+      source: data.draftSource || data.originalContent,
+      translated: data.draftTranslation || '',
+      status: data.translationStatus,
+      lastModified: data.draftLastModified || data.lastModified,
+    }));
+  } catch (error) {
+    console.error('[getAllSectionDrafts] Error fetching drafts:', error);
+    return [];
+  }
+}
+
+/**
+ * Get section translation status
+ */
+export async function getSectionStatus(bookId: string, sectionId: string) {
+  console.log('[getSectionStatus] Fetching status for section:', { bookId, sectionId });
+  
+  const db = await getDb();
+  if (!db) {
+    console.warn('[getSectionStatus] Database not available');
+    return 'not_translated';
+  }
+
+  try {
+    const sectionDataId = `${bookId}-${sectionId}`;
+    const result = await db
+      .select()
+      .from(sectionData)
+      .where(eq(sectionData.id, sectionDataId))
+      .limit(1);
+
+    if (result.length === 0) {
+      return 'not_translated';
+    }
+
+    return result[0].translationStatus;
+  } catch (error) {
+    console.error('[getSectionStatus] Error fetching status:', error);
+    return 'not_translated';
+  }
+}

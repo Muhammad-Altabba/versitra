@@ -112,3 +112,34 @@ export const sectionComments = mysqlTable("sectionComments", {
 
 export type SectionComment = typeof sectionComments.$inferSelect;
 export type InsertSectionComment = typeof sectionComments.$inferInsert;
+
+
+/**
+ * Section data table - comprehensive table for all section-related information
+ * Consolidates drafts, metadata, translation status, and content in one place
+ */
+export const sectionData = mysqlTable("sectionData", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  bookId: varchar("bookId", { length: 64 }).notNull(),
+  sectionId: varchar("sectionId", { length: 64 }).notNull(),
+  // Original content
+  originalContent: longtext("originalContent").notNull(),
+  startLine: varchar("startLine", { length: 20 }).notNull(),
+  endLine: varchar("endLine", { length: 20 }).notNull(),
+  sectionType: mysqlEnum("sectionType", ["paragraph", "heading", "code", "list"]).notNull(),
+  // Draft translation
+  draftTranslation: longtext("draftTranslation"),
+  draftSource: longtext("draftSource"),
+  // Translation status
+  translationStatus: mysqlEnum("translationStatus", ["not_translated", "draft", "committed"]).default("not_translated").notNull(),
+  // Committed translation (final version in Git)
+  committedTranslation: longtext("committedTranslation"),
+  // Metadata
+  lastModified: timestamp("lastModified").defaultNow(),
+  draftLastModified: timestamp("draftLastModified"),
+  committedAt: timestamp("committedAt"),
+  createdAt: timestamp("createdAt").defaultNow(),
+});
+
+export type SectionData = typeof sectionData.$inferSelect;
+export type InsertSectionData = typeof sectionData.$inferInsert;

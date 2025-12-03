@@ -313,3 +313,37 @@ For Production Environment:
   * Added logging to saveDraft database function
   * All 161 tests passing
   * Ready for user to check browser console for detailed error logs
+
+
+## Session 7 - Draft Storage Refactoring
+
+- [ ] Refactor draft storage from JSON to section_drafts table - CRITICAL ARCHITECTURE CHANGE
+  * Current issue: Drafts stored as JSON in books.drafts field
+  * Problem: Drafts not loading when navigating to section from project page
+  * Problem: "Not translated" status not properly tracked
+  * Solution: Create section_drafts child table with proper relationships
+  * Create section_drafts table with columns: id, bookId, sectionId, source, translated, lastModified, status
+  * Update saveDraft to insert/update in section_drafts instead of books.drafts
+  * Update getDraft to query section_drafts table
+  * Update getAllDrafts to query section_drafts table
+  * Update BookEditor to load drafts from new table
+  * Migrate existing draft data from JSON to new table
+
+
+## Session 7 Status - Section Data Refactoring COMPLETE
+
+- [x] Created sectionData table with comprehensive section-related fields
+- [x] Added database functions: saveSectionDraft, getSectionDraft, getAllSectionDrafts, getSectionStatus
+- [x] Added router procedures for new section_data operations
+- [x] Updated BookEditor to use saveSectionDraft mutation
+- [x] Database migration applied successfully
+- [x] All 161 tests passing
+- [x] TypeScript compilation successful
+- [x] Dev server running without errors
+
+## Next Steps
+
+- [ ] Migrate existing draft data from books.drafts JSON to section_data table
+- [ ] Remove old JSON fields from books table (drafts, sectionsMetadata)
+- [ ] Update Dashboard to show translation status from section_data
+- [ ] Test end-to-end workflow with new section_data table
