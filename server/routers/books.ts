@@ -282,16 +282,27 @@ export const booksRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      console.log('[Books.saveDraft] Router called with:', {
+        bookId: input.bookId,
+        sectionId: input.sectionId,
+        sourceLength: input.source.length,
+        translatedLength: input.translated.length,
+        userId: ctx.user.id,
+      });
+
       const book = await getBook(input.bookId);
 
       if (!book || book.userId !== ctx.user.id) {
+        console.error('[Books.saveDraft] Access denied:', { bookId: input.bookId, userId: ctx.user.id, bookUserId: book?.userId });
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: 'Access denied',
         });
       }
 
+      console.log('[Books.saveDraft] Calling saveDraft database function...');
       await saveDraft(input.bookId, input.sectionId, input.source, input.translated);
+      console.log('[Books.saveDraft] ✅ saveDraft completed successfully');
       return { success: true };
     }),
 

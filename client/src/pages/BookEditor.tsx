@@ -306,16 +306,32 @@ export default function BookEditor() {
         }
         
         console.log('[BookEditor] Auto-saving AI draft for section:', { sectionId, translatedLength: draft.translated.length, bookId });
+        console.log('[BookEditor] About to call saveDraftMutation with:', {
+          bookId,
+          sectionId,
+          sourceLength: (section?.content || '').length,
+          translatedLength: draft.translated.length,
+        });
         
         // Call the save mutation and wait for it to complete
-        const saveResult = await saveDraftMutation.mutateAsync({
-          bookId: bookId,
-          sectionId,
-          source: section?.content || '',
-          translated: draft.translated,
-        });
+        try {
+          const saveResult = await saveDraftMutation.mutateAsync({
+            bookId: bookId,
+            sectionId,
+            source: section?.content || '',
+            translated: draft.translated,
+          });
 
-        console.log('[BookEditor] Save mutation returned:', saveResult);
+          console.log('[BookEditor] ✅ Save mutation returned successfully:', saveResult);
+        } catch (mutationError: any) {
+          console.error('[BookEditor] ❌ Mutation threw error:', {
+            error: mutationError,
+            message: mutationError?.message,
+            code: mutationError?.code,
+            data: mutationError?.data,
+          });
+          throw mutationError;
+        }
 
         // Refresh drafts list to ensure UI is in sync
         console.log('[BookEditor] Invalidating drafts cache...');
