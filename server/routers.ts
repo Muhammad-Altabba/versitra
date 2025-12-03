@@ -6,6 +6,7 @@ import { gitRouter } from "./routers/git";
 import { booksRouter } from "./routers/books";
 import { translationRouter } from "./routers/translation";
 import { exportRouter } from "./routers/export";
+import { userRouter } from "./routers/user";
 
 export const appRouter = router({
   system: systemRouter,
@@ -32,6 +33,9 @@ export const appRouter = router({
 
   // Export functionality
   export: exportRouter,
+
+  // User settings and preferences
+  user: userRouter,
 });
 
 export type AppRouter = typeof appRouter;

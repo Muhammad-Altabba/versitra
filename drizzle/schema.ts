@@ -61,3 +61,54 @@ export const gitCredentials = mysqlTable("gitCredentials", {
 
 export type GitCredential = typeof gitCredentials.$inferSelect;
 export type InsertGitCredential = typeof gitCredentials.$inferInsert;
+
+/**
+ * User preferences table - stores user settings and preferences
+ */
+export const userPreferences = mysqlTable("userPreferences", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  userId: varchar("userId", { length: 64 }).notNull().unique(),
+  autoSaveDrafts: mysqlEnum("autoSaveDrafts", ["enabled", "disabled"]).default("enabled").notNull(),
+  aiApiProvider: varchar("aiApiProvider", { length: 50 }).default("builtin"), // 'builtin', 'openai', 'claude', 'gemini'
+  aiApiKey: text("aiApiKey"), // Encrypted API key for custom provider
+  aiApiEndpoint: text("aiApiEndpoint"), // Custom API endpoint
+  aiUsageLimit: varchar("aiUsageLimit", { length: 50 }).default("unlimited"), // Usage limit per month
+  createdAt: timestamp("createdAt").defaultNow(),
+  updatedAt: timestamp("updatedAt").defaultNow(),
+});
+
+export type UserPreference = typeof userPreferences.$inferSelect;
+export type InsertUserPreference = typeof userPreferences.$inferInsert;
+
+/**
+ * AI usage tracking table - tracks API usage per user
+ */
+export const aiUsageTracking = mysqlTable("aiUsageTracking", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  userId: varchar("userId", { length: 64 }).notNull(),
+  month: varchar("month", { length: 7 }).notNull(), // YYYY-MM format
+  requestCount: varchar("requestCount", { length: 20 }).default("0").notNull(),
+  tokenCount: varchar("tokenCount", { length: 20 }).default("0").notNull(),
+  createdAt: timestamp("createdAt").defaultNow(),
+  updatedAt: timestamp("updatedAt").defaultNow(),
+});
+
+export type AiUsageTracking = typeof aiUsageTracking.$inferSelect;
+export type InsertAiUsageTracking = typeof aiUsageTracking.$inferInsert;
+
+/**
+ * Section comments table - stores comments on translation sections
+ */
+export const sectionComments = mysqlTable("sectionComments", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  bookId: varchar("bookId", { length: 64 }).notNull(),
+  sectionId: varchar("sectionId", { length: 64 }).notNull(),
+  userId: varchar("userId", { length: 64 }).notNull(),
+  content: longtext("content").notNull(),
+  resolved: mysqlEnum("resolved", ["open", "resolved"]).default("open").notNull(),
+  createdAt: timestamp("createdAt").defaultNow(),
+  updatedAt: timestamp("updatedAt").defaultNow(),
+});
+
+export type SectionComment = typeof sectionComments.$inferSelect;
+export type InsertSectionComment = typeof sectionComments.$inferInsert;

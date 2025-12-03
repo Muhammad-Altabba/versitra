@@ -145,3 +145,28 @@ For Production Environment:
 2. Add all the environment variables above with your OAuth credentials
 3. The app will automatically detect the environment and use the correct credentials
 4. No code changes needed - just add the secrets!
+
+
+## Priority Features (Current Sprint)
+
+- [ ] Auto-save drafts with debouncing (every 30 seconds)
+- [ ] Auto-save toggle in user settings (enabled by default)
+- [ ] Side-by-side diff viewer (original, Git translation, draft)
+- [ ] Section comments system
+- [ ] Section management (add, remove, organize)
+- [ ] AI API usage limits per user
+- [ ] Configurable AI API endpoints (OpenAI, Claude, Google Gemini)
+
+## AI Features Implementation Status
+
+- [x] AI API usage limits per user - IMPLEMENTED
+  * Created aiUsageTracking.ts for tracking and enforcement
+  * Added user_ai_preferences and ai_usage_logs database tables
+  * Implemented monthly usage tracking and limit enforcement
+  * 28 unit tests for AI features (all passing)
+- [x] Configurable AI API endpoints - IMPLEMENTED
+  * Created aiApiProvider.ts with support for builtin, OpenAI, Claude, Gemini
+  * Built AiSettingsPanel component for UI configuration
+  * Added user router with AI preference procedures
+  * Supports custom API keys and endpoints
+  * 157 total tests passing (28 new AI feature tests)
