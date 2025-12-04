@@ -454,17 +454,39 @@ export async function getAllSectionDrafts(bookId: string) {
     const sectionsMetadata: Record<string, any> = {};
     const sectionDrafts: Record<string, string> = {};
     
+    // Create a map of section data by sectionId for quick lookup
+    const sectionDataMap: Record<string, typeof sectionDataResults[0]> = {};
     for (const data of sectionDataResults) {
-      sectionsMetadata[data.sectionId] = {
-        translated: data.translationStatus === 'committed',
-        status: data.translationStatus,
-        hasDraft: !!data.draftTranslation,
-        lastModified: data.draftLastModified || data.lastModified,
-      };
+      sectionDataMap[data.sectionId] = data;
+    }
+    
+    // Build metadata for ALL sections in the book
+    for (const section of sections) {
+      const data = sectionDataMap[section.id];
       
-      // Include draft content if it exists
-      if (data.draftTranslation) {
-        sectionDrafts[data.sectionId] = data.draftTranslation;
+      if (data) {
+        // Section has draft data
+        sectionsMetadata[section.id] = {
+          translated: data.translationStatus === 'committed',
+          translationStatus: data.translationStatus,
+          hasDraft: data.draftTranslation !== null && data.draftTranslation !== undefined,
+          draftLastModified: data.draftLastModified,
+          lastModified: data.draftLastModified || data.lastModified,
+        };
+        
+        // Include draft content if it exists (including empty strings)
+        if (data.draftTranslation !== null && data.draftTranslation !== undefined) {
+          sectionDrafts[section.id] = data.draftTranslation;
+        }
+      } else {
+        // Section has no draft data yet
+        sectionsMetadata[section.id] = {
+          translated: false,
+          translationStatus: 'not_translated',
+          hasDraft: false,
+          draftLastModified: undefined,
+          lastModified: undefined,
+        };
       }
     }
     
