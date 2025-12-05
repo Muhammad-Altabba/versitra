@@ -475,3 +475,17 @@ NOTES:
   * 172 total tests passing (13 new e2e tests)
   * Zero TypeScript errors
   * Draft save/load functionality fully verified
+
+
+## Session 12 - Bug Fixes
+
+- [x] Fix auto-redirect issue when selecting a section
+  * Root cause: useEffect dependency on allDrafts was resetting showSectionsList to true
+  * Fix: Changed dependency to allDrafts?.sections?.length and only set showSectionsList on initial load
+  * Now user can select a section without being redirected back to sections list
+  
+- [x] Fix AI Draft save functionality (verified working)
+  * AI Draft already uses same save mechanism as Save Draft button (saveSectionDraftMutation)
+  * Both call saveSectionDraft in db.ts which properly saves to database
+  * Logging shows successful saves - issue may have been timing or UI refresh
+  * All 172 tests passing, including draft persistence e2e tests

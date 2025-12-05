@@ -61,27 +61,21 @@ export default function BookEditor() {
   // Note: Removed verification mode that was loading from Git unnecessarily
   // Database cache is now the source of truth for section status
 
-  // Load sections from cache on mount
+  // Load sections from cache on mount - only update sections, don't reset showSectionsList
   useEffect(() => {
-    if (allDrafts) {
-      console.log('[BookEditor] Cached data loaded:', {
-        hasSections: !!allDrafts.sections,
-        sectionsCount: allDrafts.sections?.length || 0,
-        hasMetadata: !!allDrafts.sectionsMetadata,
+    if (allDrafts && allDrafts.sections && allDrafts.sections.length > 0) {
+      console.log('[BookEditor] Updating cached sections:', allDrafts.sections.length);
+      // Check if this is initial load (sections empty)
+      setSections(prev => {
+        if (prev.length === 0) {
+          console.log('[BookEditor] Initial load: showing sections list');
+          setShowSectionsList(true);
+        }
+        return allDrafts.sections;
       });
-      
-      if (allDrafts.sections && allDrafts.sections.length > 0) {
-        // Sections exist in cache - load them
-        console.log('[BookEditor] Loading cached sections:', allDrafts.sections.length);
-        setSections(allDrafts.sections);
-        setShowSectionsList(true); // FIX: Show the sections list!
-        console.log('[BookEditor] Sections list visibility set to true');
-      } else {
-        console.log('[BookEditor] No cached sections found');
-      }
       setIsLoadingProgress(false);
     }
-  }, [allDrafts]);
+  }, [allDrafts?.sections?.length]);
 
   // Helper function to split document
   const handleSplitDocument = async (content: string) => {
