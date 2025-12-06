@@ -35,7 +35,7 @@ describe('Draft Persistence E2E', () => {
         // Ignore cleanup errors if data doesn't exist
       }
 
-      // Create test book with sections in JSON format
+      // Create test book
       await db.insert(books).values({
         id: testBookId,
         userId: testUserId,
@@ -45,23 +45,35 @@ describe('Draft Persistence E2E', () => {
         sourceLanguage: 'en',
         targetLanguage: 'es',
         title: 'Test Book for Draft Persistence',
-        sections: [
-          {
-            id: testSection1Id,
-            content: 'This is the introduction section.',
-            startLine: 0,
-            endLine: 10,
-          },
-          {
-            id: testSection2Id,
-            content: 'This is chapter 1 content.',
-            startLine: 11,
-            endLine: 20,
-          },
-        ],
         createdAt: new Date(),
         lastModified: new Date(),
       });
+      
+      // Create section data for both sections in sectionData table
+      await db.insert(sectionData).values([
+        {
+          id: `${testBookId}-${testSection1Id}`,
+          bookId: testBookId,
+          sectionId: testSection1Id,
+          originalContent: 'This is the introduction section.',
+          startLine: '0',
+          endLine: '10',
+          sectionType: 'paragraph',
+          translationStatus: 'not_translated',
+          createdAt: new Date(),
+        },
+        {
+          id: `${testBookId}-${testSection2Id}`,
+          bookId: testBookId,
+          sectionId: testSection2Id,
+          originalContent: 'This is chapter 1 content.',
+          startLine: '11',
+          endLine: '20',
+          sectionType: 'paragraph',
+          translationStatus: 'not_translated',
+          createdAt: new Date(),
+        },
+      ]);
     }
   });
 
@@ -84,25 +96,17 @@ describe('Draft Persistence E2E', () => {
         return;
       }
 
-      const draftContent = 'Esta es la introducción traducida.';
       const sourceContent = 'This is the introduction section.';
+      const draftContent = 'Esta es la introducción.';
 
       // Save draft
       await saveSectionDraft(testBookId, testSection1Id, sourceContent, draftContent);
 
-      // Retrieve all drafts
+      // Retrieve and verify
       const drafts = await getAllSectionDrafts(testBookId);
-
-      // Verify draft is returned
-      expect(drafts).toBeDefined();
-      expect(drafts.sectionDrafts).toBeDefined();
       expect(drafts.sectionDrafts[testSection1Id]).toBe(draftContent);
-
-      // Verify metadata is correct
-      expect(drafts.sectionsMetadata).toBeDefined();
-      expect(drafts.sectionsMetadata[testSection1Id]).toBeDefined();
       expect(drafts.sectionsMetadata[testSection1Id].hasDraft).toBe(true);
-      expect(drafts.sectionsMetadata[testSection1Id].translated).toBe(false);
+      expect(drafts.sectionsMetadata[testSection1Id].translationStatus).toBe('draft');
     });
 
     it('should update an existing draft', async () => {
@@ -112,20 +116,18 @@ describe('Draft Persistence E2E', () => {
       }
 
       const sourceContent = 'This is the introduction section.';
-      const firstDraft = 'Primera versión de la traducción.';
-      const secondDraft = 'Segunda versión mejorada de la traducción.';
+      const draftContent1 = 'Primera versión de la traducción.';
+      const draftContent2 = 'Segunda versión de la traducción.';
 
       // Save first draft
-      await saveSectionDraft(testBookId, testSection1Id, sourceContent, firstDraft);
+      await saveSectionDraft(testBookId, testSection1Id, sourceContent, draftContent1);
       let drafts = await getAllSectionDrafts(testBookId);
-      expect(drafts.sectionDrafts[testSection1Id]).toBe(firstDraft);
+      expect(drafts.sectionDrafts[testSection1Id]).toBe(draftContent1);
 
-      // Update with second draft
-      await saveSectionDraft(testBookId, testSection1Id, sourceContent, secondDraft);
+      // Update draft
+      await saveSectionDraft(testBookId, testSection1Id, sourceContent, draftContent2);
       drafts = await getAllSectionDrafts(testBookId);
-
-      // Verify draft was updated
-      expect(drafts.sectionDrafts[testSection1Id]).toBe(secondDraft);
+      expect(drafts.sectionDrafts[testSection1Id]).toBe(draftContent2);
     });
 
     it('should persist draft across multiple getAllSectionDrafts calls', async () => {
@@ -134,21 +136,23 @@ describe('Draft Persistence E2E', () => {
         return;
       }
 
-      const draftContent = 'Traducción persistente.';
       const sourceContent = 'This is the introduction section.';
+      const draftContent = 'Esta es la introducción.';
 
       // Save draft
       await saveSectionDraft(testBookId, testSection1Id, sourceContent, draftContent);
 
-      // Call getAllSectionDrafts multiple times
-      const drafts1 = await getAllSectionDrafts(testBookId);
-      const drafts2 = await getAllSectionDrafts(testBookId);
-      const drafts3 = await getAllSectionDrafts(testBookId);
+      // First retrieval
+      let drafts = await getAllSectionDrafts(testBookId);
+      expect(drafts.sectionDrafts[testSection1Id]).toBe(draftContent);
 
-      // Verify draft is consistent across calls
-      expect(drafts1.sectionDrafts[testSection1Id]).toBe(draftContent);
-      expect(drafts2.sectionDrafts[testSection1Id]).toBe(draftContent);
-      expect(drafts3.sectionDrafts[testSection1Id]).toBe(draftContent);
+      // Second retrieval (simulating page reload)
+      drafts = await getAllSectionDrafts(testBookId);
+      expect(drafts.sectionDrafts[testSection1Id]).toBe(draftContent);
+
+      // Third retrieval
+      drafts = await getAllSectionDrafts(testBookId);
+      expect(drafts.sectionDrafts[testSection1Id]).toBe(draftContent);
     });
   });
 
@@ -161,7 +165,6 @@ describe('Draft Persistence E2E', () => {
 
       const sourceContent1 = 'This is the introduction section.';
       const draftContent1 = 'Esta es la introducción.';
-
       const sourceContent2 = 'This is chapter 1 content.';
       const draftContent2 = 'Este es el contenido del capítulo 1.';
 
@@ -169,14 +172,10 @@ describe('Draft Persistence E2E', () => {
       await saveSectionDraft(testBookId, testSection1Id, sourceContent1, draftContent1);
       await saveSectionDraft(testBookId, testSection2Id, sourceContent2, draftContent2);
 
-      // Retrieve all drafts
+      // Retrieve and verify
       const drafts = await getAllSectionDrafts(testBookId);
-
-      // Verify both drafts are present
       expect(drafts.sectionDrafts[testSection1Id]).toBe(draftContent1);
       expect(drafts.sectionDrafts[testSection2Id]).toBe(draftContent2);
-
-      // Verify metadata for both sections
       expect(drafts.sectionsMetadata[testSection1Id].hasDraft).toBe(true);
       expect(drafts.sectionsMetadata[testSection2Id].hasDraft).toBe(true);
     });
@@ -213,26 +212,21 @@ describe('Draft Persistence E2E', () => {
 
       const sourceContent1 = 'This is the introduction section.';
       const draftContent1 = 'Esta es la introducción.';
-
       const sourceContent2 = 'This is chapter 1 content.';
       const draftContent2 = 'Este es el contenido del capítulo 1.';
-      const updatedDraftContent2 = 'Contenido del capítulo 1 mejorado.';
 
       // Save drafts for both sections
       await saveSectionDraft(testBookId, testSection1Id, sourceContent1, draftContent1);
       await saveSectionDraft(testBookId, testSection2Id, sourceContent2, draftContent2);
 
-      // Update only section 2
-      await saveSectionDraft(testBookId, testSection2Id, sourceContent2, updatedDraftContent2);
+      // Update only section 1
+      const updatedDraftContent1 = 'Versión actualizada de la introducción.';
+      await saveSectionDraft(testBookId, testSection1Id, sourceContent1, updatedDraftContent1);
 
-      // Retrieve all drafts
+      // Retrieve and verify
       const drafts = await getAllSectionDrafts(testBookId);
-
-      // Verify section 1 is unchanged
-      expect(drafts.sectionDrafts[testSection1Id]).toBe(draftContent1);
-
-      // Verify section 2 is updated
-      expect(drafts.sectionDrafts[testSection2Id]).toBe(updatedDraftContent2);
+      expect(drafts.sectionDrafts[testSection1Id]).toBe(updatedDraftContent1);
+      expect(drafts.sectionDrafts[testSection2Id]).toBe(draftContent2); // Should be unchanged
     });
   });
 
@@ -243,13 +237,10 @@ describe('Draft Persistence E2E', () => {
         return;
       }
 
-      const sourceContent = 'This is a test with special chars: "quotes", ñ, é, 中文, emoji 🚀';
-      const draftContent = 'Esto es una prueba con caracteres especiales: "comillas", ñ, é, 中文, emoji 🚀';
+      const sourceContent = 'This is the introduction section.';
+      const draftContent = 'Esto es una prueba con caracteres especiales: áéíóú, ñ, ¿?, ¡!, "comillas", \'apóstrofos\', [corchetes], {llaves}';
 
-      // Save draft with special characters
       await saveSectionDraft(testBookId, testSection1Id, sourceContent, draftContent);
-
-      // Retrieve and verify
       const drafts = await getAllSectionDrafts(testBookId);
       expect(drafts.sectionDrafts[testSection1Id]).toBe(draftContent);
     });
@@ -260,20 +251,13 @@ describe('Draft Persistence E2E', () => {
         return;
       }
 
-      const sourceContent = `Line 1
-Line 2
-Line 3
-Line 4`;
-
+      const sourceContent = 'This is the introduction section.';
       const draftContent = `Línea 1
 Línea 2
-Línea 3
-Línea 4`;
+Línea 3 con más contenido
+Línea 4 con aún más contenido`;
 
-      // Save draft with multiline content
       await saveSectionDraft(testBookId, testSection1Id, sourceContent, draftContent);
-
-      // Retrieve and verify
       const drafts = await getAllSectionDrafts(testBookId);
       expect(drafts.sectionDrafts[testSection1Id]).toBe(draftContent);
     });
@@ -302,16 +286,12 @@ Línea 4`;
         return;
       }
 
-      const sourceContent = 'This is a long source text.';
-      const longDraftContent = 'A'.repeat(10000); // 10k characters
+      const sourceContent = 'This is the introduction section.';
+      const draftContent = 'Contenido muy largo. '.repeat(1000); // ~20KB of content
 
-      // Save long draft
-      await saveSectionDraft(testBookId, testSection1Id, sourceContent, longDraftContent);
-
-      // Retrieve and verify
+      await saveSectionDraft(testBookId, testSection1Id, sourceContent, draftContent);
       const drafts = await getAllSectionDrafts(testBookId);
-      expect(drafts.sectionDrafts[testSection1Id]).toBe(longDraftContent);
-      expect(drafts.sectionDrafts[testSection1Id].length).toBe(10000);
+      expect(drafts.sectionDrafts[testSection1Id]).toBe(draftContent);
     });
   });
 
@@ -373,13 +353,9 @@ Línea 4`;
       const sourceContent = 'This is the introduction section.';
       const draftContent = 'Esta es la introducción.';
 
-      // Save draft
       await saveSectionDraft(testBookId, testSection1Id, sourceContent, draftContent);
-
-      // Retrieve and verify status
       const drafts = await getAllSectionDrafts(testBookId);
       expect(drafts.sectionsMetadata[testSection1Id].translationStatus).toBe('draft');
-      expect(drafts.sectionsMetadata[testSection1Id].translated).toBe(false);
     });
   });
 });

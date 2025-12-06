@@ -489,3 +489,15 @@ NOTES:
   * Both call saveSectionDraft in db.ts which properly saves to database
   * Logging shows successful saves - issue may have been timing or UI refresh
   * All 172 tests passing, including draft persistence e2e tests
+
+
+## Session 13 - Remove sections column from books table
+
+- [x] Audit codebase for sections column usage
+- [x] Verify sectionData table has all needed data
+- [x] Remove sections column and update schema
+- [x] Run tests and verify no regressions
+  * Updated getAllSectionDrafts to reconstruct sections list from sectionData table
+  * Removed sections column from books table schema
+  * Updated test setup to create sections in sectionData table instead of books.sections
+  * All 172 tests passing

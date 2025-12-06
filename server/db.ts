@@ -209,8 +209,6 @@ export async function getBook(id: string) {
     console.log(`[Database.getBook] Book found:`, {
       id: book.id,
       title: book.title,
-      hasSections: !!book.sections,
-      sectionsCount: book.sections?.length || 0,
     });
   } else {
     console.log(`[Database.getBook] Book not found: ${id}`);
@@ -440,15 +438,22 @@ export async function getAllSectionDrafts(bookId: string) {
     }
     
     const book = bookResult[0];
-    const sections = book.sections || [];
     
-    // Get all section drafts/status from sectionData table
+    // Get all section data from sectionData table (source of truth)
     const sectionDataResults = await db
       .select()
       .from(sectionData)
       .where(eq(sectionData.bookId, bookId));
 
-    console.log('[getAllSectionDrafts] ✅ Found', sectionDataResults.length, 'draft sections');
+    console.log('[getAllSectionDrafts] ✅ Found', sectionDataResults.length, 'sections in sectionData table');
+    
+    // Reconstruct sections list from sectionData table
+    const sections = sectionDataResults.map(data => ({
+      id: data.sectionId,
+      content: data.originalContent,
+      startLine: parseInt(data.startLine),
+      endLine: parseInt(data.endLine),
+    }));
     
     // Build metadata map and draft content map
     const sectionsMetadata: Record<string, any> = {};
