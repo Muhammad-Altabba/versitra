@@ -33,13 +33,14 @@ export const books = mysqlTable("books", {
   targetLanguage: varchar("targetLanguage", { length: 10 }),
   originalText: longtext("originalText"), // Original extracted text from PDF or user input (supports up to 4GB)
   parsedMarkdown: longtext("parsedMarkdown"), // Markdown version of the original text (supports up to 4GB)
-  sections: json("sections").$type<Array<{ id: string; content: string; startLine: number; endLine: number }>>(), // Cached document sections
   createdAt: timestamp("createdAt").defaultNow(),
   lastModified: timestamp("lastModified").defaultNow(),
 });
 
 export type Book = typeof books.$inferSelect;
 export type InsertBook = typeof books.$inferInsert;
+
+// Note: Section data is now stored exclusively in the sectionData table, not in books.sections
 
 /**
  * Git credentials table - encrypted OAuth tokens

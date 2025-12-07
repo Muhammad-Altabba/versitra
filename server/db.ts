@@ -241,31 +241,65 @@ export async function deleteBook(id: string) {
 }
 
 
-export async function updateBookSections(
-  id: string,
+/**
+ * Save sections to sectionData table
+ * This replaces the old updateBookSections which stored sections in books.sections
+ */
+export async function saveSectionsToDatabase(
+  bookId: string,
   sections: Array<{ id: string; content: string; startLine: number; endLine: number }>
 ) {
-  console.log('[Database.updateBookSections] Updating sections for book:', {
-    bookId: id,
+  console.log('[Database.saveSectionsToDatabase] Saving sections for book:', {
+    bookId,
     sectionsCount: sections.length,
     sectionIds: sections.map(s => s.id).slice(0, 5),
   });
   
   const db = await getDb();
   if (!db) {
-    console.warn('[Database] Cannot update book sections: database not available');
+    console.warn('[Database] Cannot save sections: database not available');
     return;
   }
 
-  await db
-    .update(books)
-    .set({ 
-      sections,
-      lastModified: new Date() 
-    })
-    .where(eq(books.id, id));
+  try {
+    // Delete existing section data for this book
+    await db.delete(sectionData).where(eq(sectionData.bookId, bookId));
     
-  console.log('[Database.updateBookSections] ✅ Sections saved successfully');
+    // Insert all sections as new sectionData entries
+    for (const section of sections) {
+      const sectionDataId = `${bookId}-${section.id}`;
+      await db.insert(sectionData).values({
+        id: sectionDataId,
+        bookId,
+        sectionId: section.id,
+        originalContent: section.content,
+        startLine: section.startLine.toString(),
+        endLine: section.endLine.toString(),
+        sectionType: 'paragraph',
+        translationStatus: 'not_translated',
+        createdAt: new Date(),
+      });
+    }
+    
+    // Update book's lastModified timestamp
+    await db.update(books)
+      .set({ lastModified: new Date() })
+      .where(eq(books.id, bookId));
+    
+    console.log('[Database.saveSectionsToDatabase] ✅ Sections saved successfully');
+  } catch (error) {
+    console.error('[Database.saveSectionsToDatabase] Error saving sections:', error);
+    throw error;
+  }
+}
+
+// Deprecated: Use saveSectionsToDatabase instead
+export async function updateBookSections(
+  id: string,
+  sections: Array<{ id: string; content: string; startLine: number; endLine: number }>
+) {
+  console.warn('[Database.updateBookSections] DEPRECATED: Use saveSectionsToDatabase instead');
+  return saveSectionsToDatabase(id, sections);
 }
 
 
