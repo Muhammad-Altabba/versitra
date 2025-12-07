@@ -247,7 +247,7 @@ export async function deleteBook(id: string) {
  */
 export async function saveSectionsToDatabase(
   bookId: string,
-  sections: Array<{ id: string; content: string; startLine: number; endLine: number }>
+  sections: Array<{ id: string; content: string; startLine: number; endLine: number; type?: 'paragraph' | 'heading' | 'code' | 'list' }>
 ) {
   console.log('[Database.saveSectionsToDatabase] Saving sections for book:', {
     bookId,
@@ -275,7 +275,7 @@ export async function saveSectionsToDatabase(
         originalContent: section.content,
         startLine: section.startLine.toString(),
         endLine: section.endLine.toString(),
-        sectionType: 'paragraph',
+        sectionType: section.type || 'paragraph',
         translationStatus: 'not_translated',
         createdAt: new Date(),
       });
@@ -296,7 +296,7 @@ export async function saveSectionsToDatabase(
 // Deprecated: Use saveSectionsToDatabase instead
 export async function updateBookSections(
   id: string,
-  sections: Array<{ id: string; content: string; startLine: number; endLine: number }>
+  sections: Array<{ id: string; content: string; startLine: number; endLine: number; type?: 'paragraph' | 'heading' | 'code' | 'list' }>
 ) {
   console.warn('[Database.updateBookSections] DEPRECATED: Use saveSectionsToDatabase instead');
   return saveSectionsToDatabase(id, sections);
@@ -487,6 +487,7 @@ export async function getAllSectionDrafts(bookId: string) {
       content: data.originalContent,
       startLine: parseInt(data.startLine),
       endLine: parseInt(data.endLine),
+      type: (data.sectionType as 'paragraph' | 'heading' | 'code' | 'list') || 'paragraph',
     }));
     
     // Build metadata map and draft content map

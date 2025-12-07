@@ -511,3 +511,26 @@ NOTES:
 - [x] Ran database migration (drizzle-kit) to apply schema changes
 - [x] All 172 tests passing with zero TypeScript errors
 - [x] Verified all code now uses sectionData table exclusively for section storage
+
+## Session 15 - Fix AI Draft button error and audit table usage
+
+### AI Draft Error Investigation
+- [x] Root cause identified: Section type field mismatch
+  * saveSectionsToDatabase() was hardcoding sectionType: 'paragraph'
+  * getAllSectionDrafts() was not reconstructing type field from sectionType
+  * Frontend sections were missing type field when passed to generateDraft
+
+### Fixes Applied
+- [x] Updated saveSectionsToDatabase() to accept and preserve type field
+- [x] Updated getAllSectionDrafts() to reconstruct sections with type field
+- [x] Updated updateBookSections() wrapper to accept type field
+- [x] All 172 tests passing
+- [x] TypeScript compilation: 0 errors
+
+### Table Usage Audit - COMPLETE
+- [x] Review books table usage - See TABLE_USAGE_AUDIT.md
+- [x] Review sectionData table usage - See TABLE_USAGE_AUDIT.md
+- [x] Review sectionComments table usage - See TABLE_USAGE_AUDIT.md
+- [x] Verify all code uses correct field names (type vs sectionType)
+- [x] Ensure database operations match schema definitions
+- [x] Created comprehensive TABLE_USAGE_AUDIT.md document
