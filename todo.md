@@ -534,3 +534,18 @@ NOTES:
 - [x] Verify all code uses correct field names (type vs sectionType)
 - [x] Ensure database operations match schema definitions
 - [x] Created comprehensive TABLE_USAGE_AUDIT.md document
+
+
+## Session 16 - Fix AI Draft persistence issue
+
+### AI Draft Persistence Problem
+- [x] Issue: AI draft appeared briefly then reverted to old content on page refresh
+- [x] Root cause 1: saveSectionDraft() missing createdAt field when creating new entries
+- [x] Root cause 2: Cache invalidation using invalidate() instead of fetch() caused race condition
+
+### Fixes Applied
+- [x] Added missing createdAt field to saveSectionDraft() database function
+- [x] Changed cache refresh from invalidate() to fetch() for immediate data refresh
+- [x] Added comprehensive logging to track the save/fetch flow
+- [x] TypeScript compilation: 0 errors
+- [x] Dev server running smoothly

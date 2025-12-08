@@ -381,7 +381,7 @@ export async function saveSectionDraft(
         id: sectionDataId,
         bookId,
         sectionId,
-        originalContent: source,
+        originalContent: source || '',
         draftTranslation: translated,
         draftSource: source,
         translationStatus: 'draft',
@@ -389,6 +389,7 @@ export async function saveSectionDraft(
         endLine: '0',
         sectionType: 'paragraph',
         draftLastModified: new Date(),
+        createdAt: new Date(),
       });
     }
 

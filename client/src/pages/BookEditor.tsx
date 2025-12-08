@@ -300,8 +300,12 @@ export default function BookEditor() {
         }
 
       // Refresh drafts list to ensure UI is in sync
-      console.log('[BookEditor] Invalidating drafts cache...');
-      await utils.books.getAllSectionDrafts.invalidate({ bookId });
+      console.log('[BookEditor] Refetching drafts cache...');
+      const refetchResult = await utils.books.getAllSectionDrafts.fetch({ bookId });
+      console.log('[BookEditor] Refetched drafts:', {
+        sectionsCount: refetchResult?.sections?.length,
+        hasDraft: !!refetchResult?.sectionDrafts?.[sections[currentSectionIndex]?.id],
+      });
         
         // Update last saved time
         const now = new Date();
