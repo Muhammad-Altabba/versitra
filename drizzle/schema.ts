@@ -86,8 +86,8 @@ export const aiUsageTracking = mysqlTable("aiUsageTracking", {
   id: varchar("id", { length: 64 }).primaryKey(),
   userId: varchar("userId", { length: 64 }).notNull(),
   month: varchar("month", { length: 7 }).notNull(), // YYYY-MM format
-  requestCount: varchar("requestCount", { length: 20 }).default("0").notNull(),
-  tokenCount: varchar("tokenCount", { length: 20 }).default("0").notNull(),
+  requestCount: varchar("requestCount", { length: 20 }).default("0").notNull(), // TODO: Migrate to bigint after data conversion
+  tokenCount: varchar("tokenCount", { length: 20 }).default("0").notNull(), // TODO: Migrate to bigint after data conversion
   createdAt: timestamp("createdAt").defaultNow(),
   updatedAt: timestamp("updatedAt").defaultNow(),
 });
@@ -123,8 +123,8 @@ export const sectionData = mysqlTable("sectionData", {
   sectionId: varchar("sectionId", { length: 64 }).notNull(),
   // Original content
   originalContent: longtext("originalContent").notNull(),
-  startLine: varchar("startLine", { length: 20 }).notNull(),
-  endLine: varchar("endLine", { length: 20 }).notNull(),
+  startLine: varchar("startLine", { length: 20 }).notNull(), // TODO: Migrate to int after data conversion
+  endLine: varchar("endLine", { length: 20 }).notNull(), // TODO: Migrate to int after data conversion
   sectionType: mysqlEnum("sectionType", ["paragraph", "heading", "code", "list"]).notNull(),
   // Draft translation
   draftTranslation: longtext("draftTranslation"),
