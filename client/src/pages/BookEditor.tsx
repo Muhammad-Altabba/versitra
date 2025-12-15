@@ -299,21 +299,37 @@ export default function BookEditor() {
           throw mutationError;
         }
 
-      // Refresh drafts list to ensure UI is in sync
-      console.log('[BookEditor] Refetching drafts cache...');
-      const refetchResult = await utils.books.getAllSectionDrafts.fetch({ bookId });
-      console.log('[BookEditor] Refetched drafts:', {
-        sectionsCount: refetchResult?.sections?.length,
-        hasDraft: !!refetchResult?.sectionDrafts?.[sections[currentSectionIndex]?.id],
-      });
+        // Optimistic cache update: Update the cache directly with the saved data
+        // This avoids read-after-write consistency issues where refetch returns stale data
+        console.log('[BookEditor] Updating cache optimistically with saved draft...');
+        utils.books.getAllSectionDrafts.setData({ bookId }, (oldData) => {
+          if (!oldData) return oldData;
+          
+          // Update the sectionDrafts map with the new draft
+          const updatedDrafts: Record<string, string> = {
+            ...(oldData.sectionDrafts || {}),
+            [sectionId]: draft.translated,
+          };
+          
+          console.log('[BookEditor] ✅ Cache updated optimistically:', {
+            sectionId,
+            hasDraft: !!updatedDrafts[sectionId],
+            draftLength: updatedDrafts[sectionId]?.length,
+          });
+          
+          return {
+            ...oldData,
+            sectionDrafts: updatedDrafts,
+          };
+        });
         
         // Update last saved time
         const now = new Date();
         setLastSavedTime(now);
         lastSavedRef.current = now;
 
-        console.log('[BookEditor] ✓ AI draft auto-saved successfully');
-        toast.success("AI draft auto-saved to database");
+        console.log('[BookEditor] ✓ AI draft auto-saved and cache updated successfully');
+        toast.success("AI draft saved");
       } catch (saveError: any) {
         console.error('[BookEditor] ✗ Failed to auto-save AI draft:', {
           error: saveError,
@@ -401,8 +417,20 @@ export default function BookEditor() {
         [section?.id || 'section']: translatedContent,
       }));
 
-      // Refresh drafts list
-      await utils.books.getAllSectionDrafts.invalidate({ bookId });
+      // Optimistic cache update: Update the cache directly with the saved data
+      utils.books.getAllSectionDrafts.setData({ bookId: bookId || "" }, (oldData) => {
+        if (!oldData) return oldData;
+        
+        const updatedDrafts: Record<string, string> = {
+          ...(oldData.sectionDrafts || {}),
+          [sectionId]: translatedContent,
+        };
+        
+        return {
+          ...oldData,
+          sectionDrafts: updatedDrafts,
+        };
+      });
       
       // Update last saved time
       const now = new Date();

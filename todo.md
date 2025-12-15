@@ -662,3 +662,31 @@ NOTES:
 - [ ] Issue #13: Numeric fields stored as strings
 - [ ] Issue #14: Fail-open security in usage limit check
 - [ ] Issue #15: Potential undefined access in section splitting
+
+
+## Session 21 - Fix Read-After-Write Consistency Issue
+
+### Problem Identified
+- [x] AI draft saves successfully to database
+- [x] Immediate fetch() returns old data (before commit visible)
+- [x] Page refresh shows correct data (proves save worked)
+- [x] Race condition between database commit and query
+
+### Root Cause Analysis
+- [x] Database transaction not fully committed when fetch executes
+- [x] MySQL/TiDB eventual consistency behavior
+- [x] fetch() called immediately after mutation doesn't see new data
+
+### Solution Implemented
+- [x] Chose Option 4: Use setQueryData for optimistic cache update
+- [x] Replaced fetch() with setQueryData() in handleGenerateDraft
+- [x] Applied same fix to handleSaveTranslation (manual save)
+- [x] Added proper TypeScript types (Record<string, string>)
+- [x] Eliminated race condition entirely
+
+### Implementation Complete
+- [x] Updated BookEditor.tsx with optimistic cache updates
+- [x] Fixed both AI draft auto-save and manual save functions
+- [x] TypeScript: 0 errors
+- [x] Dev server: running correctly
+- [x] No refetch needed - cache updated directly with saved data
