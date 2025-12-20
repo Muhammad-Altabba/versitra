@@ -323,6 +323,13 @@ export default function BookEditor() {
           };
         });
         
+        // Update translationProgress state to prevent loadSectionTranslation from reverting to old data
+        setTranslationProgress(prev => ({
+          ...prev,
+          [sectionId]: draft.translated,
+        }));
+        console.log('[BookEditor] ✅ translationProgress state updated for section:', sectionId);
+        
         // Update last saved time
         const now = new Date();
         setLastSavedTime(now);

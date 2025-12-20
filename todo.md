@@ -690,3 +690,25 @@ NOTES:
 - [x] TypeScript: 0 errors
 - [x] Dev server: running correctly
 - [x] No refetch needed - cache updated directly with saved data
+
+
+## Session 22 - Fix AI Draft UI Revert Issue (translationProgress State)
+
+### Problem
+- [x] AI draft saves successfully to database
+- [x] Optimistic cache update works (allDrafts query updated)
+- [x] UI shows new translation briefly
+- [x] loadSectionTranslation useEffect runs and loads old data from translationProgress state
+- [x] UI reverts to old content
+
+### Root Cause
+- [x] translationProgress state not updated when AI draft is saved
+- [x] loadSectionTranslation checks translationProgress first, before checking allDrafts
+- [x] Optimistic cache update only updates query cache, not local state
+
+### Solution Implemented
+- [x] Update translationProgress state in handleGenerateDraft after save
+- [x] State update happens alongside cache update
+- [x] Added setTranslationProgress call after optimistic cache update
+- [x] TypeScript: 0 errors
+- [x] Complete flow: generate → save → cache update → state update → UI stays current
