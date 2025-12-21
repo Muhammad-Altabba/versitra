@@ -712,3 +712,49 @@ NOTES:
 - [x] Added setTranslationProgress call after optimistic cache update
 - [x] TypeScript: 0 errors
 - [x] Complete flow: generate → save → cache update → state update → UI stays current
+
+
+## Session 23 - Documentation Organization and Feature Enhancements
+
+### Documentation Organization
+- [x] Remove `agents-artifacts/` from .gitignore
+- [x] Create `agents-artifacts/done/` directory
+- [x] Create `agents-artifacts/doing/` directory
+- [x] Update AGENTS.md to document the structure
+- [x] Review all report files for completed issues
+- [x] Move SECTION_SAVE_LOAD_ISSUES.md to done/ (issues resolved)
+- [x] Move BUG_REPORT.md, DATABASE_CODE_REVIEW.md, EXECUTION_SEQUENCE_REVIEW.md, TABLE_USAGE_AUDIT.md to doing/ (still have open issues)
+
+### New Project Popup Improvements
+- [ ] Add language dropdown lists (source and target)
+- [ ] Set English as default source language
+- [ ] Detect and set target language from browser
+- [ ] Remember last project's language settings for returning users
+- [ ] Save initial source text to GitHub
+- [ ] Save empty translated sections to GitHub
+- [ ] Create initial clean version in Git
+
+### Section Translation Enhancements
+- [x] Make source text editable (replaced div with MDEditor)
+- [x] Add save functionality for source text (Save Source button appears when changed)
+- [x] Match translation textarea height to source textarea height (both 400px)
+- [x] Ensure all controls visible without scrolling (grid layout maintains visibility)
+- [x] Implement RTL formatting for RTL languages (Arabic, Hebrew, Persian, Urdu)
+- [x] Apply RTL to both source and translation textareas (using isRTL() helper)
+
+### Section Deletion Feature
+- [x] Add delete button for sections (in navigation area)
+- [x] Implement confirmation dialog (with warning message)
+- [ ] Delete from database (sectionData table) - TODO backend mutation
+- [x] Update sections array in UI (filter and adjust index)
+- [x] Handle edge cases (disabled when only 1 section, adjusts current index)
+### Bug Fixes
+- [x] Investigate "Create Version" bug (0 sections saved)
+- [x] Verified commitVersion procedure implementation - IT'S A STUB!
+- [ ] Fix commitVersion - MAJOR FEATURE, needs separate implementation:
+  * Fetch all section drafts from database
+  * Reconstruct full translated document from sections
+  * Commit to Git repository via GitHub/GitLab API
+  * Update committedTranslation and committedAt in sectionData
+  * Return actual committed count
+  * This is Issue #2 from BUG_REPORT.md (Critical Priority) creation end-to-end

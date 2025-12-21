@@ -11,6 +11,8 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import AiSettingsPanel from "@/components/AiSettingsPanel";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { LANGUAGES, detectBrowserLanguage } from "@shared/languages";
 
 export default function Dashboard() {
   const { user, loading, isAuthenticated, logout } = useAuth();
@@ -44,6 +46,20 @@ export default function Dashboard() {
   const { data: books, isLoading: booksLoading, refetch } = trpc.books.list.useQuery(undefined, {
     enabled: isAuthenticated,
   });
+  
+  // Initialize language defaults when books load
+  useEffect(() => {
+    if (books && books.length > 0) {
+      // Use last project's languages as defaults
+      const lastBook = books[books.length - 1];
+      setSourceLanguage(lastBook.sourceLanguage || "en");
+      setTargetLanguage(lastBook.targetLanguage || detectBrowserLanguage());
+    } else if (books && books.length === 0) {
+      // New user: use English source and detected target
+      setSourceLanguage("en");
+      setTargetLanguage(detectBrowserLanguage());
+    }
+  }, [books]);
 
   const { data: gitInfo, refetch: refetchGitInfo } = trpc.git.getUserInfo.useQuery(undefined, {
     enabled: isAuthenticated,
@@ -275,21 +291,33 @@ export default function Dashboard() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="source-lang">Source Language</Label>
-                    <Input
-                      id="source-lang"
-                      placeholder="en"
-                      value={sourceLanguage}
-                      onChange={(e) => setSourceLanguage(e.target.value)}
-                    />
+                    <Select value={sourceLanguage} onValueChange={setSourceLanguage}>
+                      <SelectTrigger id="source-lang">
+                        <SelectValue placeholder="Select source language" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {LANGUAGES.map((lang) => (
+                          <SelectItem key={lang.code} value={lang.code}>
+                            {lang.name} ({lang.nativeName})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="target-lang">Target Language</Label>
-                    <Input
-                      id="target-lang"
-                      placeholder="es"
-                      value={targetLanguage}
-                      onChange={(e) => setTargetLanguage(e.target.value)}
-                    />
+                    <Select value={targetLanguage} onValueChange={setTargetLanguage}>
+                      <SelectTrigger id="target-lang">
+                        <SelectValue placeholder="Select target language" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {LANGUAGES.map((lang) => (
+                          <SelectItem key={lang.code} value={lang.code}>
+                            {lang.name} ({lang.nativeName})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </div>

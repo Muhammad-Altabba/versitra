@@ -21,11 +21,14 @@ import {
   GitBranch,
   Eye,
   GitCommit,
+  Save,
+  Trash2,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useParams } from "wouter";
 import { toast } from "sonner";
 import MDEditor from '@uiw/react-md-editor';
+import { isRTL } from '@shared/languages';
 
 export default function BookEditor() {
   const { bookId } = useParams<{ bookId: string }>();
@@ -33,6 +36,8 @@ export default function BookEditor() {
   const { isAuthenticated } = useAuth();
   const [sourceContent, setSourceContent] = useState("");
   const [translatedContent, setTranslatedContent] = useState("");
+  const [sourceChanged, setSourceChanged] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [sections, setSections] = useState<any[]>([]);
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [uploadMode, setUploadMode] = useState<'text' | 'pdf'>('text');
@@ -119,6 +124,10 @@ export default function BookEditor() {
     const loadSectionTranslation = async () => {
       if (sections.length > 0 && sections[currentSectionIndex] && book && gitInfo) {
         const sectionId = sections[currentSectionIndex].id;
+        
+        // Load source content
+        setSourceContent(sections[currentSectionIndex].content || '');
+        setSourceChanged(false);
         
         // Check if already loaded in memory
         if (translationProgress[sectionId]) {
@@ -715,14 +724,41 @@ export default function BookEditor() {
               {/* Source */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    Source ({book?.sourceLanguage})
-                  </CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      Source ({book?.sourceLanguage})
+                    </CardTitle>
+                    {sourceChanged && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={async () => {
+                          // TODO: Implement source text save
+                          toast.info('Source text save coming soon');
+                          setSourceChanged(false);
+                        }}
+                      >
+                        <Save className="h-4 w-4 mr-2" />
+                        Save Source
+                      </Button>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="p-4 bg-gray-50 rounded-lg border min-h-[400px] font-mono text-sm whitespace-pre-wrap">
-                    {sections[currentSectionIndex]?.content}
+                  <div data-color-mode="light">
+                    <MDEditor
+                      value={sourceContent}
+                      onChange={(val) => {
+                        setSourceContent(val || '');
+                        setSourceChanged(true);
+                      }}
+                      height={400}
+                      preview="edit"
+                      style={{
+                        direction: book?.sourceLanguage && isRTL(book.sourceLanguage) ? 'rtl' : 'ltr'
+                      }}
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -763,6 +799,9 @@ export default function BookEditor() {
                       onChange={(val) => setTranslatedContent(val || '')}
                       height={400}
                       preview="edit"
+                      style={{
+                        direction: book?.targetLanguage && isRTL(book.targetLanguage) ? 'rtl' : 'ltr'
+                      }}
                     />
                   </div>
                 </CardContent>
@@ -780,9 +819,20 @@ export default function BookEditor() {
                   >
                     Previous Section
                   </Button>
-                  <span className="text-sm text-muted-foreground">
-                    Section {currentSectionIndex + 1}: {sections[currentSectionIndex]?.type}
-                  </span>
+                  <div className="flex items-center gap-4">
+                    <span className="text-sm text-muted-foreground">
+                      Section {currentSectionIndex + 1}: {sections[currentSectionIndex]?.type}
+                    </span>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => setDeleteDialogOpen(true)}
+                      disabled={sections.length <= 1}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Section
+                    </Button>
+                  </div>
                   <Button
                     variant="outline"
                     onClick={() =>
@@ -795,6 +845,51 @@ export default function BookEditor() {
                 </div>
               </CardContent>
             </Card>
+            
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Delete Section?</DialogTitle>
+                  <DialogDescription>
+                    Are you sure you want to delete section {currentSectionIndex + 1}? This action cannot be undone.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={async () => {
+                      try {
+                        const sectionId = sections[currentSectionIndex].id;
+                        
+                        // TODO: Add backend mutation to delete section from database
+                        // await deleteSectionMutation.mutateAsync({ bookId, sectionId });
+                        
+                        // Remove from local state
+                        const newSections = sections.filter((_, idx) => idx !== currentSectionIndex);
+                        setSections(newSections);
+                        
+                        // Adjust current index if needed
+                        if (currentSectionIndex >= newSections.length) {
+                          setCurrentSectionIndex(Math.max(0, newSections.length - 1));
+                        }
+                        
+                        setDeleteDialogOpen(false);
+                        toast.success('Section deleted');
+                      } catch (error) {
+                        console.error('Failed to delete section:', error);
+                        toast.error('Failed to delete section');
+                      }
+                    }}
+                  >
+                    Delete
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         )}
       </main>
