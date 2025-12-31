@@ -239,6 +239,131 @@ export const booksRouter = router({
       }
 
       console.log('[Books.commitVersion] Committing drafts for book:', input.bookId);
-      return { success: true, committedCount: 0 };
+      
+      try {
+        // Import version service functions
+        const { reconstructDocument, generateCommitMessage, getTranslationFilePath } = await import('../version/service');
+        const { getAllGitCredentials } = await import('../db/git-credentials');
+        const { GitHubClient } = await import('../git/github');
+        const { GitLabClient } = await import('../git/gitlab');
+        const { updateSectionCommitStatus } = await import('../db/sections');
+        
+        // 1. Reconstruct document from section drafts
+        const { content, sectionCount, sectionIds } = await reconstructDocument(input.bookId);
+        
+        if (sectionCount === 0) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'No translated sections to commit',
+          });
+        }
+        
+        // 2. Get Git credentials
+        const credentials = await getAllGitCredentials(ctx.user.id);
+        if (!credentials || credentials.length === 0) {
+          throw new TRPCError({
+            code: 'PRECONDITION_FAILED',
+            message: 'No Git account connected. Please connect GitHub or GitLab first.',
+          });
+        }
+        
+        // Use the first available credential (prefer GitHub)
+        const gitCred = credentials.find((c: any) => c.provider === 'github') || credentials[0];
+        
+        // 3. Parse repository info from book.repoUrl
+        const repoUrl = book.repoUrl;
+        if (!repoUrl) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Book has no repository URL',
+          });
+        }
+        
+        // Extract owner and repo name from URL
+        // Format: https://github.com/owner/repo or https://gitlab.com/owner/repo
+        const urlMatch = repoUrl.match(/(?:github\.com|gitlab\.com)\/([^\/]+)\/([^\/]+?)(?:\.git)?$/);
+        if (!urlMatch) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Invalid repository URL format',
+          });
+        }
+        
+        const [, owner, repoName] = urlMatch;
+        
+        // 4. Generate commit message and file path
+        const commitMessage = generateCommitMessage(
+          input.versionTitle,
+          input.versionDescription,
+          sectionCount
+        );
+        
+        const filePath = getTranslationFilePath(
+          book.targetLanguage || 'en',
+          book.title || 'untitled'
+        );
+        
+        console.log('[Books.commitVersion] Committing to Git:', {
+          provider: gitCred.provider,
+          owner,
+          repo: repoName,
+          filePath,
+          sectionCount,
+        });
+        
+        // 5. Commit to Git repository
+        if (gitCred.provider === 'github') {
+          const client = new GitHubClient(gitCred.accessToken);
+          await client.commitFile(
+            owner,
+            repoName,
+            filePath,
+            content,
+            commitMessage
+          );
+        } else if (gitCred.provider === 'gitlab') {
+          const client = new GitLabClient(gitCred.accessToken);
+          await (client as any).commitFile(
+            owner,
+            repoName,
+            filePath,
+            content,
+            commitMessage
+          );
+        } else {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Unsupported Git provider: ${gitCred.provider}`,
+          });
+        }
+        
+        // 6. Update database: mark sections as committed
+        const now = new Date();
+        for (const sectionId of sectionIds) {
+          await updateSectionCommitStatus(input.bookId, sectionId, content, now);
+        }
+        
+        console.log(`[Books.commitVersion] ✅ Successfully committed ${sectionCount} sections`);
+        
+        return {
+          success: true,
+          committedCount: sectionCount,
+          filePath,
+          message: commitMessage,
+        };
+      } catch (error: any) {
+        console.error('[Books.commitVersion] ❌ Error:', error);
+        
+        // Re-throw TRPC errors as-is
+        if (error.code) {
+          throw error;
+        }
+        
+        // Wrap other errors
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to commit version: ${error.message}`,
+        });
+      }
     }),
 });

@@ -311,6 +311,41 @@ export async function getAllSectionDrafts(bookId: string): Promise<AllSectionDra
 }
 
 /**
+ * Update section commit status after successful Git commit
+ */
+export async function updateSectionCommitStatus(
+  bookId: string,
+  sectionId: string,
+  committedContent: string,
+  committedAt: Date
+): Promise<void> {
+  const db = await getDb();
+  if (!db) {
+    console.warn('[Database.updateSectionCommitStatus] Database not available');
+    return;
+  }
+
+  const dataId = makeSectionDataId(bookId, sectionId);
+
+  try {
+    await db
+      .update(sectionData)
+      .set({
+        committedTranslation: committedContent,
+        committedAt: committedAt,
+        translationStatus: 'committed',
+        lastModified: committedAt,
+      })
+      .where(eq(sectionData.id, dataId));
+
+    console.log(`[Database.updateSectionCommitStatus] Updated commit status for ${dataId}`);
+  } catch (error) {
+    console.error('[Database.updateSectionCommitStatus] Error:', error);
+    throw error;
+  }
+}
+
+/**
  * Get section translation status
  */
 export async function getSectionStatus(bookId: string, sectionId: string): Promise<'not_translated' | 'draft' | 'committed'> {

@@ -50,6 +50,31 @@ export async function upsertGitCredential(
 }
 
 /**
+ * Get all git credentials for a user (with decrypted tokens)
+ */
+export async function getAllGitCredentials(userId: string): Promise<Array<GitCredential & { accessToken: string; refreshToken: string | null; provider: string }>> {
+  const db = await getDb();
+  if (!db) {
+    console.warn('[Database.getAllGitCredentials] Cannot get git credentials: database not available');
+    return [];
+  }
+
+  const { decrypt } = await import('../lib/encryption');
+
+  const results = await db
+    .select()
+    .from(gitCredentials)
+    .where(eq(gitCredentials.userId, userId));
+
+  return results.map(cred => ({
+    ...cred,
+    provider: cred.gitProvider,
+    accessToken: decrypt(cred.accessToken),
+    refreshToken: cred.refreshToken ? decrypt(cred.refreshToken) : null,
+  }));
+}
+
+/**
  * Get git credential for a user (with decrypted tokens)
  */
 export async function getGitCredential(userId: string): Promise<(GitCredential & { accessToken: string; refreshToken: string | null }) | undefined> {
