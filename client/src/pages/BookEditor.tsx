@@ -314,21 +314,37 @@ export default function BookEditor() {
         utils.books.getAllSectionDrafts.setData({ bookId }, (oldData) => {
           if (!oldData) return oldData;
           
+          const now = new Date();
+          
           // Update the sectionDrafts map with the new draft
           const updatedDrafts: Record<string, string> = {
             ...(oldData.sectionDrafts || {}),
             [sectionId]: draft.translated,
           };
           
+          // Update sectionsMetadata to reflect the draft status
+          const updatedMetadata: Record<string, any> = {
+            ...(oldData.sectionsMetadata || {}),
+            [sectionId]: {
+              ...oldData.sectionsMetadata?.[sectionId],
+              hasDraft: true,
+              translationStatus: 'draft' as const,
+              draftLastModified: now,
+              lastModified: now,
+            },
+          };
+          
           console.log('[BookEditor] ✅ Cache updated optimistically:', {
             sectionId,
             hasDraft: !!updatedDrafts[sectionId],
             draftLength: updatedDrafts[sectionId]?.length,
+            metadataUpdated: true,
           });
           
           return {
             ...oldData,
             sectionDrafts: updatedDrafts,
+            sectionsMetadata: updatedMetadata,
           };
         });
         
@@ -434,6 +450,7 @@ export default function BookEditor() {
       }));
 
       // Optimistic cache update: Update the cache directly with the saved data
+      const now = new Date();
       utils.books.getAllSectionDrafts.setData({ bookId: bookId || "" }, (oldData) => {
         if (!oldData) return oldData;
         
@@ -442,14 +459,26 @@ export default function BookEditor() {
           [sectionId]: translatedContent,
         };
         
+        // Update sectionsMetadata to reflect the draft status
+        const updatedMetadata: Record<string, any> = {
+          ...(oldData.sectionsMetadata || {}),
+          [sectionId]: {
+            ...oldData.sectionsMetadata?.[sectionId],
+            hasDraft: true,
+            translationStatus: 'draft' as const,
+            draftLastModified: now,
+            lastModified: now,
+          },
+        };
+        
         return {
           ...oldData,
           sectionDrafts: updatedDrafts,
+          sectionsMetadata: updatedMetadata,
         };
       });
       
       // Update last saved time
-      const now = new Date();
       setLastSavedTime(now);
       lastSavedRef.current = now;
 

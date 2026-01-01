@@ -258,6 +258,10 @@ export const booksRouter = router({
           });
         }
         
+        // Get individual section drafts for database storage
+        const { getAllSectionDrafts } = await import('../db/sections');
+        const { sectionDrafts } = await getAllSectionDrafts(input.bookId);
+        
         // 2. Get Git credentials
         const credentials = await getAllGitCredentials(ctx.user.id);
         if (!credentials || credentials.length === 0) {
@@ -323,9 +327,10 @@ export const booksRouter = router({
           );
         } else if (gitCred.provider === 'gitlab') {
           const client = new GitLabClient(gitCred.accessToken);
-          await (client as any).commitFile(
-            owner,
-            repoName,
+          // GitLab uses projectId (owner/repo) as first parameter
+          const projectId = `${owner}/${repoName}`;
+          await client.commitFile(
+            projectId,
             filePath,
             content,
             commitMessage
@@ -337,10 +342,11 @@ export const booksRouter = router({
           });
         }
         
-        // 6. Update database: mark sections as committed
+        // 6. Update database: mark sections as committed with individual section content
         const now = new Date();
         for (const sectionId of sectionIds) {
-          await updateSectionCommitStatus(input.bookId, sectionId, content, now);
+          const sectionTranslation = sectionDrafts[sectionId] || '';
+          await updateSectionCommitStatus(input.bookId, sectionId, sectionTranslation, now);
         }
         
         console.log(`[Books.commitVersion] ✅ Successfully committed ${sectionCount} sections`);

@@ -34,8 +34,11 @@ export interface AllSectionDraftsResult {
 }
 
 /**
- * Save sections to sectionData table
+ * Save sections to sectionData table with smart merging to preserve existing translations
  * This replaces the old updateBookSections which stored sections in books.sections
+ * 
+ * IMPORTANT: This function preserves existing draft and committed translations when re-splitting.
+ * Only the originalContent, startLine, endLine, and sectionType are updated for existing sections.
  */
 export async function saveSectionsToDatabase(
   bookId: string,
@@ -54,23 +57,66 @@ export async function saveSectionsToDatabase(
   }
 
   try {
-    // Delete existing section data for this book
-    await db.delete(sectionData).where(eq(sectionData.bookId, bookId));
+    // Get existing section data to preserve translations
+    const existingSections = await db
+      .select()
+      .from(sectionData)
+      .where(eq(sectionData.bookId, bookId));
     
-    // Insert all sections as new sectionData entries
+    const existingMap = new Map<string, typeof existingSections[0]>();
+    for (const existing of existingSections) {
+      existingMap.set(existing.sectionId, existing);
+    }
+    
+    console.log('[Database.saveSectionsToDatabase] Found', existingSections.length, 'existing sections');
+    
+    // Track which sections are in the new split
+    const newSectionIds = new Set(sections.map(s => s.id));
+    
+    // Update or insert each section
     for (const section of sections) {
       const sectionDataId = makeSectionDataId(bookId, section.id);
-      await db.insert(sectionData).values({
-        id: sectionDataId,
-        bookId,
-        sectionId: section.id,
-        originalContent: section.content,
-        startLine: section.startLine.toString(),
-        endLine: section.endLine.toString(),
-        sectionType: section.type || 'paragraph',
-        translationStatus: 'not_translated',
-        createdAt: new Date(),
-      });
+      const existing = existingMap.get(section.id);
+      
+      if (existing) {
+        // Section exists - UPDATE only source content, preserve translations
+        console.log('[Database.saveSectionsToDatabase] Updating existing section:', section.id);
+        await db
+          .update(sectionData)
+          .set({
+            originalContent: section.content,
+            startLine: section.startLine.toString(),
+            endLine: section.endLine.toString(),
+            sectionType: section.type || 'paragraph',
+            lastModified: new Date(),
+            // Explicitly preserve: draftTranslation, draftSource, committedTranslation, committedAt, translationStatus
+          })
+          .where(eq(sectionData.id, sectionDataId));
+      } else {
+        // New section - INSERT
+        console.log('[Database.saveSectionsToDatabase] Inserting new section:', section.id);
+        await db.insert(sectionData).values({
+          id: sectionDataId,
+          bookId,
+          sectionId: section.id,
+          originalContent: section.content,
+          startLine: section.startLine.toString(),
+          endLine: section.endLine.toString(),
+          sectionType: section.type || 'paragraph',
+          translationStatus: 'not_translated',
+          createdAt: new Date(),
+        });
+      }
+    }
+    
+    // Delete sections that no longer exist in the new split
+    const sectionsToDelete = existingSections.filter(s => !newSectionIds.has(s.sectionId));
+    if (sectionsToDelete.length > 0) {
+      console.log('[Database.saveSectionsToDatabase] Deleting', sectionsToDelete.length, 'removed sections:', 
+        sectionsToDelete.map(s => s.sectionId));
+      for (const section of sectionsToDelete) {
+        await db.delete(sectionData).where(eq(sectionData.id, section.id));
+      }
     }
     
     // Update book's lastModified timestamp
@@ -78,7 +124,7 @@ export async function saveSectionsToDatabase(
       .set({ lastModified: new Date() })
       .where(eq(books.id, bookId));
     
-    console.log('[Database.saveSectionsToDatabase] ✅ Sections saved successfully');
+    console.log('[Database.saveSectionsToDatabase] ✅ Sections saved successfully (preserved existing translations)');
   } catch (error) {
     console.error('[Database.saveSectionsToDatabase] Error saving sections:', error);
     throw error;
@@ -137,22 +183,15 @@ export async function saveSectionDraft(
         })
         .where(eq(sectionData.id, sectionDataId));
     } else {
-      // Create new section data
-      console.log('[Database.saveSectionDraft] Creating new section data');
-      await db.insert(sectionData).values({
-        id: sectionDataId,
+      // This should never happen if sections are properly initialized via saveSectionsToDatabase
+      console.error('[Database.saveSectionDraft] WARNING: Creating section data without metadata!', {
         bookId,
         sectionId,
-        originalContent: source || '',
-        draftTranslation: translated,
-        draftSource: source,
-        translationStatus: 'draft',
-        startLine: '0',
-        endLine: '0',
-        sectionType: 'paragraph',
-        draftLastModified: new Date(),
-        createdAt: new Date(),
+        message: 'This indicates sections were not properly initialized. Please re-split the document first.',
       });
+      throw new Error(
+        `Section data not found for ${sectionId}. Please re-split the document from the Dashboard before translating.`
+      );
     }
 
     // Also update the book's lastModified timestamp to mark it as recently edited

@@ -19,25 +19,23 @@ export async function getDb() {
 
 /**
  * Helper to create composite section data ID
+ * Uses :: delimiter to avoid conflicts with hyphens in bookId or sectionId
  */
 export function makeSectionDataId(bookId: string, sectionId: string): string {
   if (!bookId || !sectionId) {
     throw new Error('Invalid IDs: bookId and sectionId are required');
   }
-  return `${bookId}-${sectionId}`;
+  return `${bookId}::${sectionId}`;
 }
 
 /**
  * Helper to parse section data ID back to components
+ * Uses :: delimiter to avoid conflicts with hyphens in bookId or sectionId
  */
 export function parseSectionDataId(id: string): { bookId: string; sectionId: string } {
-  const parts = id.split('-');
-  if (parts.length < 2) {
-    throw new Error(`Invalid section data ID format: ${id}`);
+  const parts = id.split('::');
+  if (parts.length !== 2) {
+    throw new Error(`Invalid section data ID format: ${id}. Expected format: bookId::sectionId`);
   }
-  // Handle case where bookId or sectionId might contain hyphens
-  // Assuming format is always bookId-sectionId where both are single segments
-  const bookId = parts[0];
-  const sectionId = parts.slice(1).join('-');
-  return { bookId, sectionId };
+  return { bookId: parts[0], sectionId: parts[1] };
 }

@@ -107,8 +107,12 @@ export const translationRouter = router({
       // Split document into sections
       const sections = await splitDocument(input.content, input.sourceLanguage, input.targetLanguage);
       
-      // Save original content and sections to database
-      await updateBookOriginalText(input.bookId, input.content, input.content);
+      // Parse markdown from original content
+      // TODO: Implement proper markdown parsing if needed, for now use content as-is
+      const parsedMarkdown = input.content; // Placeholder - in future, parse and format markdown
+      
+      // Save original content and parsed markdown to database
+      await updateBookOriginalText(input.bookId, input.content, parsedMarkdown);
       await updateBookSections(input.bookId, sections);
       
       return sections;

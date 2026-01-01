@@ -1,5 +1,6 @@
-import { z } from 'zod';
+import { z } from "zod";
 import { protectedProcedure, router } from '../_core/trpc';
+import type { GitClient } from "../git/types";
 import { GitHubClient } from '../git/github';
 import { GitLabClient } from '../git/gitlab';
 import { getGitCredential } from '../db';
@@ -103,17 +104,29 @@ export const gitRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const { client } = await getGitClient(ctx.user.id);
+      const { client, provider } = await getGitClient(ctx.user.id);
 
-      await (client as any).commitFile(
-        input.owner,
-        input.repo,
-        input.path,
-        input.content,
-        input.message,
-        input.branch,
-        input.sha
-      );
+      // Type-safe commit based on provider
+      if (provider === 'github') {
+        await client.commitFile(
+          input.owner,
+          input.repo,
+          input.path,
+          input.content,
+          input.message,
+          input.branch,
+          input.sha
+        );
+      } else if (provider === 'gitlab') {
+        const projectId = `${input.owner}/${input.repo}`;
+        await client.commitFile(
+          projectId,
+          input.path,
+          input.content,
+          input.message,
+          input.branch
+        );
+      }
 
       return { success: true };
     }),
@@ -140,7 +153,7 @@ export const gitRouter = router({
       
       const { client } = await getGitClient(ctx.user.id);
 
-      const commits = await (client as any).getCommitHistory(
+      const commits = await (client as GitClient).getCommitHistory(
         input.owner,
         input.repo,
         input.path,
@@ -219,7 +232,7 @@ export const gitRouter = router({
     .query(async ({ ctx, input }) => {
       const { client } = await getGitClient(ctx.user.id);
 
-      const files = await (client as any).listFiles(
+      const files = await (client as GitClient).listFiles(
         input.owner,
         input.repo,
         input.path,

@@ -50,9 +50,10 @@ describe('Draft Persistence E2E', () => {
       });
       
       // Create section data for both sections in sectionData table
+      // Use :: delimiter to match the new makeSectionDataId format
       await db.insert(sectionData).values([
         {
-          id: `${testBookId}-${testSection1Id}`,
+          id: `${testBookId}::${testSection1Id}`,
           bookId: testBookId,
           sectionId: testSection1Id,
           originalContent: 'This is the introduction section.',
@@ -63,7 +64,7 @@ describe('Draft Persistence E2E', () => {
           createdAt: new Date(),
         },
         {
-          id: `${testBookId}-${testSection2Id}`,
+          id: `${testBookId}::${testSection2Id}`,
           bookId: testBookId,
           sectionId: testSection2Id,
           originalContent: 'This is chapter 1 content.',
