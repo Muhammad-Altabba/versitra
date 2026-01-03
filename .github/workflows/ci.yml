@@ -63,7 +63,6 @@ jobs:
           NODE_ENV: test
           PUBLIC_URL: http://localhost:3000
         run: pnpm test:e2e
-        continue-on-error: true # Allow E2E tests to fail without blocking
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
@@ -140,10 +139,50 @@ jobs:
           path: dist/
           retention-days: 7
 
-  summary:
-    name: Test Summary
+  deploy:
+    name: Deploy to Production
     runs-on: ubuntu-latest
     needs: [test, lint, build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+      url: https://your-app.manus.space
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: ./dist
+
+      - name: Deploy to Manus
+        run: |
+          echo "🚀 Deploying to production..."
+          echo "Build artifacts ready in ./dist"
+          echo "Note: Manus platform handles deployment automatically via checkpoint publishing"
+          echo "To deploy: Go to Manus UI → Click 'Publish' button on latest checkpoint"
+          echo "Deployment URL will be: https://your-app.manus.space"
+
+      - name: Deployment summary
+        run: |
+          echo "## 🚀 Deployment Ready" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Build validated and ready for deployment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Go to Manus UI" >> $GITHUB_STEP_SUMMARY
+          echo "2. Click 'Publish' button on latest checkpoint" >> $GITHUB_STEP_SUMMARY
+          echo "3. Your app will be live at: https://your-app.manus.space" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📦 Build size: $(du -sh ./dist 2>/dev/null | cut -f1 || echo 'N/A')" >> $GITHUB_STEP_SUMMARY
+
+  summary:
+    name: Pipeline Summary
+    runs-on: ubuntu-latest
+    needs: [test, lint, build, deploy]
     if: always()
     
     steps:
@@ -156,3 +195,4 @@ jobs:
           echo "- Tests: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Lint: ${{ needs.lint.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Build: ${{ needs.build.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Deploy: ${{ needs.deploy.result }}" >> $GITHUB_STEP_SUMMARY
