@@ -890,3 +890,36 @@ All 8 critical issues from Session 25 code review have been successfully fixed a
 - ✅ API consistency with proper GitLab support
 - ✅ Type safety with GitClient interface
 - ✅ Better state management with complete optimistic cache updates
+
+
+## Session 27 - Add Integration & E2E Tests
+
+### Integration Tests for Git Commit Workflow ✅
+- [x] Test GitHub commit workflow with individual section content
+- [x] Test GitLab commit workflow with correct API signature
+- [x] Test commit with multiple sections
+- [x] Test commit status updates in database
+- [x] Test document reconstruction from drafts
+- [x] Test full commit workflow end-to-end
+- [x] Test ID parsing with hyphens using :: delimiter
+- [x] Test individual section translation storage (not full document)
+
+### E2E Tests for Section Splitting and Translation ✅
+- [x] Test initial document split into sections
+- [x] Test section re-split preserves existing translations
+- [x] Test section re-split with added content
+- [x] Test section re-split with removed content
+- [x] Test section re-split with modified content
+- [x] Test translation draft save and load
+- [x] Test draft update on re-save
+- [x] Test error when saving draft for non-existent section
+- [x] Test section metadata tracking
+- [x] Test metadata updates after draft save
+- [x] Test complete document restructure
+
+### Test Coverage Verification ✅
+- [x] Run all tests and ensure they pass (200/200 ✅)
+- [x] Verify coverage for critical paths
+- [x] Fixed test issues (field names, ordering)
+- [x] All new tests passing
+- [x] Save checkpoint
