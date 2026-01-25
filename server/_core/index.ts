@@ -14,6 +14,7 @@ import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./cookies";
 import { upsertUser } from "../db";
 import { sdk } from "./sdk";
+import * as jose from "jose";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -81,11 +82,18 @@ async function startServer() {
           lastSignedIn: new Date(),
         });
         
-        // Create session token using Manus SDK
-        const token = await sdk.createSessionToken(userId, {
-          name,
-          expiresInMs: ONE_YEAR_MS,
-        });
+        // Create simple JWT token for test mode (bypasses Manus SDK)
+        const secret = new TextEncoder().encode(ENV.cookieSecret);
+        const token = await new jose.SignJWT({ 
+          sub: userId, 
+          name, 
+          email, 
+          role 
+        })
+          .setProtectedHeader({ alg: 'HS256' })
+          .setIssuedAt()
+          .setExpirationTime('1y')
+          .sign(secret);
         
         // Set session cookie
         const cookieOptions = getSessionCookieOptions(req);
