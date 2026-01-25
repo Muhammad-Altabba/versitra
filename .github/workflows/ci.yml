@@ -64,7 +64,6 @@ jobs:
           DATABASE_URL: mysql://root:test_password@localhost:3306/test_db
           JWT_SECRET: test_jwt_secret_for_ci
           NODE_ENV: test
-          PUBLIC_URL: http://localhost:3000
         run: pnpm test:e2e
 
       - name: Upload Playwright report

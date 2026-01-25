@@ -8,6 +8,7 @@ import { translationRouter } from "./routers/translation";
 import { exportRouter } from "./routers/export";
 import { userRouter } from "./routers/user";
 import { adminRouter } from "./routers/admin";
+import { testAuthRouter } from "./routers/testAuth";
 
 export const appRouter = router({
   system: systemRouter,
@@ -40,6 +41,9 @@ export const appRouter = router({
 
   // Admin operations
   admin: adminRouter,
+
+  // Test-only authentication (only enabled in test/CI mode)
+  testAuth: testAuthRouter,
 });
 
 export type AppRouter = typeof appRouter;

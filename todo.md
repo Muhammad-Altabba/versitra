@@ -331,3 +331,15 @@ This document tracks the development progress, features, bugs, and technical deb
 - [x] Local: 211/221 passing (expected - JWT secret mismatch)
 - [x] CI: 221/221 will pass (100% ✅)
 - [x] Save checkpoint
+
+
+## Session 31 - Test-Only Authentication Endpoint & CI Fix
+- [ ] Create test-only login endpoint in server
+- [ ] Add NODE_ENV check to enable only in test mode
+- [ ] Update Playwright auth helper to use test endpoint
+- [ ] Fix CI workflow syntax error (duplicate run statements)
+- [ ] Enable all Playwright E2E tests in CI
+- [ ] Run tests locally to verify
+- [ ] Push to GitHub and monitor CI/CD
+- [ ] Verify 100% test pass rate (221/221)
+- [ ] Save checkpoint
