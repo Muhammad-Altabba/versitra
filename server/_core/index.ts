@@ -10,6 +10,10 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { ENV } from "./env";
+import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+import { getSessionCookieOptions } from "./cookies";
+import { upsertUser } from "../db";
+import { sdk } from "./sdk";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -59,6 +63,42 @@ async function startServer() {
   
   // Git OAuth routes (GitHub & GitLab)
   app.use('/api', gitOAuthRouter);
+  
+  // Test-only REST login endpoint (only in test/CI mode)
+  const isTestMode = process.env.NODE_ENV === "test" || process.env.CI === "true";
+  if (isTestMode) {
+    app.post('/api/test-login', async (req, res) => {
+      try {
+        const { userId = 'test-user-id', name = 'Test User', email = 'test@example.com', role = 'user' } = req.body || {};
+        
+        // Create or update test user in database
+        await upsertUser({
+          id: userId,
+          name,
+          email,
+          role,
+          loginMethod: 'test',
+          lastSignedIn: new Date(),
+        });
+        
+        // Create session token using Manus SDK
+        const token = await sdk.createSessionToken(userId, {
+          name,
+          expiresInMs: ONE_YEAR_MS,
+        });
+        
+        // Set session cookie
+        const cookieOptions = getSessionCookieOptions(req);
+        res.cookie(COOKIE_NAME, token, cookieOptions);
+        
+        res.json({ success: true, user: { id: userId, name, email, role } });
+      } catch (error) {
+        console.error('Test login error:', error);
+        res.status(500).json({ error: 'Test login failed', details: String(error) });
+      }
+    });
+    console.log('[Test Mode] REST test login endpoint enabled at /api/test-login');
+  }
   // tRPC API
   app.use(
     "/api/trpc",

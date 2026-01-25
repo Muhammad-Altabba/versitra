@@ -4,12 +4,11 @@ import { Page } from '@playwright/test';
  * Authentication helper for Playwright E2E tests
  * 
  * This module provides utilities to authenticate users in tests
- * using the test-only authentication endpoint (only available in test/CI mode).
+ * using the REST test login endpoint (only available in test/CI mode).
  */
 
 /**
  * Mock user data for testing
- * Note: Uses 'userId' to match the server's expected input schema
  */
 export const mockUser = {
   userId: 'test-user-123',
@@ -26,7 +25,7 @@ export const mockAdminUser = {
 };
 
 /**
- * Login using the test-only authentication endpoint
+ * Login using the REST test login endpoint
  * 
  * This endpoint is only available when NODE_ENV=test or CI=true
  */
@@ -37,20 +36,14 @@ async function loginViaTestEndpoint(
   // Navigate to the app first to establish the domain
   await page.goto('/');
 
-  // Call the test login endpoint using page.evaluate to make a fetch request
-  // This ensures the cookie is set in the correct context
-  // tRPC HTTP mutations expect body format: { "0": { "json": { ...input } } }
+  // Call the REST test login endpoint (simpler than tRPC)
   const result = await page.evaluate(async (userData) => {
-    const response = await fetch('/api/trpc/testAuth.testLogin', {
+    const response = await fetch('/api/test-login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        "0": {
-          "json": userData
-        }
-      }),
+      body: JSON.stringify(userData),
       credentials: 'include', // Important: include cookies
     });
 
