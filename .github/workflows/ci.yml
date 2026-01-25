@@ -47,7 +47,7 @@ jobs:
       - name: Run database migrations
         env:
           DATABASE_URL: mysql://root:test_password@localhost:3306/test_db
-        run: pnpm db:push
+        run: pnpm exec drizzle-kit push
 
       - name: Run unit and integration tests
         env:
