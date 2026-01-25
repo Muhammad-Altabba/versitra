@@ -9,16 +9,17 @@ import { Page } from '@playwright/test';
 
 /**
  * Mock user data for testing
+ * Note: Uses 'userId' to match the server's expected input schema
  */
 export const mockUser = {
-  id: 'test-user-123',
+  userId: 'test-user-123',
   name: 'Test User',
   email: 'test@example.com',
   role: 'user' as const,
 };
 
 export const mockAdminUser = {
-  id: 'test-admin-456',
+  userId: 'test-admin-456',
   name: 'Admin User',
   email: 'admin@example.com',
   role: 'admin' as const,
@@ -38,19 +39,24 @@ async function loginViaTestEndpoint(
 
   // Call the test login endpoint using page.evaluate to make a fetch request
   // This ensures the cookie is set in the correct context
+  // tRPC HTTP mutations expect body format: { "0": { "json": { ...input } } }
   const result = await page.evaluate(async (userData) => {
     const response = await fetch('/api/trpc/testAuth.testLogin', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ input: userData }), // tRPC expects input wrapper
+      body: JSON.stringify({
+        "0": {
+          "json": userData
+        }
+      }),
       credentials: 'include', // Important: include cookies
     });
 
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(`Test login failed: ${response.status} ${text}`);
+      throw new Error(`Test login failed: ${response.status} - ${text}`);
     }
 
     return await response.json();
