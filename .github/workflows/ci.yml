@@ -44,6 +44,11 @@ jobs:
       - name: TypeScript type check
         run: pnpm check
 
+      - name: Run database migrations
+        env:
+          DATABASE_URL: mysql://root:test_password@localhost:3306/test_db
+        run: pnpm db:push
+
       - name: Run unit and integration tests
         env:
           DATABASE_URL: mysql://root:test_password@localhost:3306/test_db
