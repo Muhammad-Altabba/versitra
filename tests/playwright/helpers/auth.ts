@@ -44,7 +44,7 @@ async function loginViaTestEndpoint(
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(userData),
+      body: JSON.stringify({ input: userData }), // tRPC expects input wrapper
       credentials: 'include', // Important: include cookies
     });
 
