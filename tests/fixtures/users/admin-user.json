@@ -1,0 +1,14 @@
+{
+  "id": "user_admin_001",
+  "name": "Admin User",
+  "email": "admin@example.com",
+  "loginMethod": "github",
+  "role": "admin",
+  "createdAt": "2025-01-01T00:00:00Z",
+  "lastSignedIn": "2026-02-01T09:00:00Z",
+  "preferences": {
+    "theme": "dark",
+    "language": "en",
+    "notifications": true
+  }
+}

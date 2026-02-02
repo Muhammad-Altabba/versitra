@@ -1,0 +1,14 @@
+{
+  "id": "user_regular_001",
+  "name": "John Translator",
+  "email": "john@example.com",
+  "loginMethod": "github",
+  "role": "user",
+  "createdAt": "2025-06-15T10:30:00Z",
+  "lastSignedIn": "2026-01-28T14:45:00Z",
+  "preferences": {
+    "theme": "light",
+    "language": "en",
+    "notifications": true
+  }
+}

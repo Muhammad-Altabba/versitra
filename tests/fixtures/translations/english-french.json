@@ -1,0 +1,22 @@
+{
+  "language_pair": "en-fr",
+  "difficulty": "advanced",
+  "domain": "technical",
+  "translations": [
+    {
+      "id": "trans_101",
+      "source": "API Documentation",
+      "target": "Documentation de l'API"
+    },
+    {
+      "id": "trans_102",
+      "source": "Authentication required",
+      "target": "Authentification requise"
+    },
+    {
+      "id": "trans_103",
+      "source": "Request timeout",
+      "target": "Délai d'attente dépassé"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "user_new_001",
+  "name": "New Translator",
+  "email": "new@example.com",
+  "loginMethod": "gitlab",
+  "role": "user",
+  "createdAt": "2026-02-01T10:00:00Z",
+  "lastSignedIn": "2026-02-01T10:00:00Z",
+  "preferences": {
+    "theme": "light",
+    "language": "en",
+    "notifications": true
+  }
+}

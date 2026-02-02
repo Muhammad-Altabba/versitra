@@ -1,0 +1,23 @@
+{
+  "language_pair": "en-ar",
+  "difficulty": "advanced",
+  "domain": "narrative",
+  "direction": "rtl",
+  "translations": [
+    {
+      "id": "trans_201",
+      "source": "The story begins",
+      "target": "تبدأ القصة"
+    },
+    {
+      "id": "trans_202",
+      "source": "Once upon a time",
+      "target": "في يوم من الأيام"
+    },
+    {
+      "id": "trans_203",
+      "source": "A long time ago",
+      "target": "منذ زمن بعيد جداً"
+    }
+  ]
+}

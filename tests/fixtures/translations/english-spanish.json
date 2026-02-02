@@ -1,0 +1,32 @@
+{
+  "language_pair": "en-es",
+  "difficulty": "intermediate",
+  "domain": "general",
+  "translations": [
+    {
+      "id": "trans_001",
+      "source": "Welcome to the Git Translation Platform",
+      "target": "Bienvenido a la Plataforma de Traducción Git"
+    },
+    {
+      "id": "trans_002",
+      "source": "Create a new translation project",
+      "target": "Crear un nuevo proyecto de traducción"
+    },
+    {
+      "id": "trans_003",
+      "source": "Upload your document for translation",
+      "target": "Carga tu documento para traducción"
+    },
+    {
+      "id": "trans_004",
+      "source": "The quick brown fox jumps over the lazy dog",
+      "target": "El rápido zorro marrón salta sobre el perro perezoso"
+    },
+    {
+      "id": "trans_005",
+      "source": "Save your draft before committing",
+      "target": "Guarda tu borrador antes de confirmar"
+    }
+  ]
+}

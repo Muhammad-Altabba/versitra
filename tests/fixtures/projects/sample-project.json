@@ -1,0 +1,44 @@
+{
+  "id": "proj_sample_001",
+  "userId": "user_regular_001",
+  "title": "Documentation Translation Project",
+  "description": "Translating technical documentation from English to Spanish",
+  "sourceLanguage": "en",
+  "targetLanguage": "es",
+  "status": "active",
+  "gitProvider": "github",
+  "gitRepoUrl": "https://github.com/example/docs-translation",
+  "gitBranch": "main",
+  "createdAt": "2025-12-01T08:00:00Z",
+  "updatedAt": "2026-02-01T14:30:00Z",
+  "sections": [
+    {
+      "id": "sec_001",
+      "sectionNumber": 1,
+      "title": "Introduction",
+      "status": "committed",
+      "wordCount": 250
+    },
+    {
+      "id": "sec_002",
+      "sectionNumber": 2,
+      "title": "Getting Started",
+      "status": "draft",
+      "wordCount": 350
+    },
+    {
+      "id": "sec_003",
+      "sectionNumber": 3,
+      "title": "API Reference",
+      "status": "not_translated",
+      "wordCount": 500
+    }
+  ],
+  "progress": {
+    "total": 3,
+    "committed": 1,
+    "draft": 1,
+    "notTranslated": 1,
+    "percentage": 33
+  }
+}
